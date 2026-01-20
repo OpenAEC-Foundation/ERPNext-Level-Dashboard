@@ -182,13 +182,13 @@
         .node.shape-large {
             min-width: 300px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
-            border: 3px solid #0ea5e9;
-            box-shadow: 0 0 40px rgba(14, 165, 233, 0.25);
+            border: 3px solid #f59e0b;
+            box-shadow: 0 0 40px rgba(245, 158, 11, 0.25);
         }
         .node.shape-large .node-header {
             padding: 24px 30px;
             background: transparent;
-            border-bottom: 2px solid rgba(14, 165, 233, 0.3);
+            border-bottom: 2px solid rgba(245, 158, 11, 0.3);
         }
         .node.shape-large .node-title {
             font-size: 24px;
@@ -201,7 +201,7 @@
             width: 56px;
             height: 56px;
             font-size: 36px;
-            background: rgba(14, 165, 233, 0.2);
+            background: rgba(245, 158, 11, 0.2);
             border-radius: 12px;
         }
         .node.shape-large .node-body {
@@ -2012,7 +2012,7 @@
         const nodeTypes = {
             company: {
                 title: 'Company',
-                color: '#0ea5e9',
+                color: '#f59e0b',
                 icon: '🏢',
                 shape: 'large',
                 level: 1,
@@ -2029,6 +2029,7 @@
                         fields: [
                             { key: 'name', label: 'Company Name', type: 'text' },
                             { key: 'abbr', label: 'Abbreviation', type: 'text', readonly: true },
+                            { key: 'company_director', label: 'Bestuurder', type: 'link', doctype: 'Employee' },
                             { key: 'parent_company', label: 'Parent Company', type: 'link', doctype: 'Company' }
                         ]
                     },
@@ -3050,7 +3051,7 @@
                 erpnextGetDoc('Company', company),
                 erpnextGetList('Department', {
                     filters: { company, disabled: 0 },
-                    fields: ['name', 'department_name', 'parent_department', 'is_group', 'disabled'],
+                    fields: ['name', 'department_name', 'parent_department', 'is_group', 'disabled', 'department_head'],
                     limit: 500
                 }),
                 erpnextGetList('Employee', {
@@ -3087,7 +3088,8 @@
                     name: d.name,
                     department_name: d.department_name,
                     parent_department: d.parent_department || 'All Departments',
-                    is_group: d.is_group || 0
+                    is_group: d.is_group || 0,
+                    department_head: d.department_head || null
                 })),
                 employees: employees.map(e => ({
                     name: e.name,
@@ -3390,16 +3392,16 @@
             // 3. Create main departments (level 1)
             const mainDepts = data.departments.filter(d => d.parent_department === 'All Departments');
             mainDepts.forEach((dept, index) => {
-                // Find department head
-                const deptHead = data.employees.find(e =>
-                    (e.department === dept.name || e.department === dept.department_name) &&
-                    (e.designation?.includes('Chief') || e.designation?.includes('Director') || e.designation?.includes('Head'))
-                );
+                // Find department head from the new custom field
+                const deptHead = dept.department_head
+                    ? data.employees.find(e => e.name === dept.department_head)
+                    : null;
 
                 const deptId = createNode('department', deptStartX + deptSpacing * index, deptY, {
                     name: dept.department_name,
                     erpnext_name: dept.name,
                     is_group: dept.is_group,
+                    department_head: dept.department_head,
                     head: deptHead ? {
                         name: deptHead.employee_name,
                         designation: deptHead.designation,
@@ -3434,11 +3436,22 @@
                 const yOffset = Math.floor(pos.count / 2) * 130;
                 pos.count++;
 
+                // Find sub-department head
+                const subDeptHead = subDept.department_head
+                    ? data.employees.find(e => e.name === subDept.department_head)
+                    : null;
+
                 const subDeptId = createNode('subdepartment', parentData.x + xOffset, subDeptY + yOffset, {
                     name: subDept.department_name,
                     erpnext_name: subDept.name,
                     parent_department: subDept.parent_department,
-                    is_group: subDept.is_group
+                    is_group: subDept.is_group,
+                    department_head: subDept.department_head,
+                    head: subDeptHead ? {
+                        name: subDeptHead.employee_name,
+                        designation: subDeptHead.designation,
+                        employee_id: subDeptHead.name
+                    } : null
                 });
                 nodeMap.set(subDept.name, subDeptId);
                 connectNodes(parentId, subDeptId);
@@ -4213,7 +4226,7 @@
                 'Agent': ['custom_is_agent', 'custom_agent_model', 'custom_agent_system_prompt']
             },
             'Department': {
-                'Basis Info': ['department_name', 'company', 'parent_department', 'is_group', 'disabled']
+                'Basis Info': ['department_name', 'company', 'parent_department', 'department_head', 'is_group', 'disabled']
             },
             'Project': {
                 'Basis Info': ['project_name', 'status', 'is_active', 'percent_complete', 'priority'],

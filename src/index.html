@@ -655,6 +655,36 @@
             font-size: 13px;
         }
 
+        /* Node type specifiek: Subdepartment - Level 3 - 1.7x */
+        .node[data-type="subdepartment"] {
+            min-width: 180px;
+            border: 2px solid #14b8a6;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            box-shadow: 0 0 25px rgba(20, 184, 166, 0.2);
+        }
+        .node[data-type="subdepartment"] .node-header {
+            padding: 14px 18px;
+            background: rgba(20, 184, 166, 0.1);
+        }
+        .node[data-type="subdepartment"] .node-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .node[data-type="subdepartment"] .node-subtitle {
+            font-size: 10px;
+        }
+        .node[data-type="subdepartment"] .node-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
+            background: rgba(20, 184, 166, 0.2);
+            color: #14b8a6;
+        }
+        .node[data-type="subdepartment"] .node-body {
+            padding: 12px 18px;
+            font-size: 12px;
+        }
+
         /* ========== COMBINED NODE: Department + Afdelingshoofd Addon ========== */
         .node-addon {
             position: absolute;
@@ -2125,7 +2155,7 @@
             },
             subdepartment: {
                 title: 'Sub-department',
-                color: '#6366f1',
+                color: '#14b8a6',
                 icon: '◇',
                 shape: 'default',
                 level: 3,

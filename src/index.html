@@ -3498,14 +3498,14 @@
         // Build organization chart from ERPNext data
         function buildOrganizationFromData(data) {
             const nodeMap = new Map(); // Track node IDs by ERPNext name
-            const deptSpacing = 480;
+            const deptSpacing = 620;      // Horizontal space between departments
             const deptStartX = 200;
-            const deptY = 550;
-            const subDeptY = 880;
-            const empY = 1200;
+            const deptY = 650;            // Y position for departments
+            const subDeptY = 1050;        // Y position for subdepartments
+            const empY = 1500;            // Y position for employees
 
             // 1. Create Company node
-            const companyId = createNode('company', 1400, 80, {
+            const companyId = createNode('company', 1500, 80, {
                 ...data.company,
                 name: data.company.name
             });
@@ -3514,7 +3514,7 @@
             // 2. Find CTO (top of hierarchy)
             const cto = data.employees.find(e => e.designation === 'Chief Technology Officer');
             if (cto) {
-                const ctoId = createNode('boss', 1400, 300, {
+                const ctoId = createNode('boss', 1500, 350, {
                     name: cto.employee_name,
                     employee_id: cto.name,
                     designation: cto.designation,
@@ -3552,7 +3552,7 @@
                 }
 
                 // Create policy node for department (linked to wiki)
-                const policyId = createNode('policy', deptStartX + deptSpacing * index - 120, deptY + 180, {
+                const policyId = createNode('policy', deptStartX + deptSpacing * index - 140, deptY + 220, {
                     name: `${dept.department_name} Beleid`,
                     type: 'Guideline',
                     applies_to: dept.department_name,
@@ -3573,13 +3573,13 @@
                 const parentData = state.nodes.get(parentId);
                 if (!parentData) return;
 
-                // Calculate position
+                // Calculate position with more spacing
                 if (!subDeptPositions.has(subDept.parent_department)) {
-                    subDeptPositions.set(subDept.parent_department, { count: 0, offset: -90 });
+                    subDeptPositions.set(subDept.parent_department, { count: 0, offset: -120 });
                 }
                 const pos = subDeptPositions.get(subDept.parent_department);
-                const xOffset = (pos.count % 2 === 0 ? -1 : 1) * 90 * Math.ceil((pos.count + 1) / 2);
-                const yOffset = Math.floor(pos.count / 2) * 130;
+                const xOffset = (pos.count % 2 === 0 ? -1 : 1) * 140 * Math.ceil((pos.count + 1) / 2);
+                const yOffset = Math.floor(pos.count / 2) * 180;
                 pos.count++;
 
                 // Find sub-department head
@@ -3613,9 +3613,9 @@
 
             regularEmployees.forEach((emp, index) => {
                 const deptId = nodeMap.get(emp.department);
-                const baseX = deptId ? state.nodes.get(deptId)?.x || (deptStartX + index * 200) : (deptStartX + index * 200);
+                const baseX = deptId ? state.nodes.get(deptId)?.x || (deptStartX + index * 250) : (deptStartX + index * 250);
 
-                const empId = createNode('employee', baseX + (index % 3 - 1) * 180, empY + Math.floor(index / 3) * 150, {
+                const empId = createNode('employee', baseX + (index % 3 - 1) * 220, empY + Math.floor(index / 3) * 200, {
                     name: emp.employee_name,
                     employee_id: emp.name,
                     designation: emp.designation,
@@ -3635,9 +3635,9 @@
             const agents = data.employees.filter(e => e.is_agent);
             agents.forEach((agent, index) => {
                 const reportsToId = nodeMap.get(agent.reports_to);
-                const baseX = reportsToId ? state.nodes.get(reportsToId)?.x || 1800 : 1800;
+                const baseX = reportsToId ? state.nodes.get(reportsToId)?.x || 2000 : 2000;
 
-                const agentId = createNode('agent', baseX + 300 + index * 200, empY, {
+                const agentId = createNode('agent', baseX + 350 + index * 250, empY, {
                     name: agent.employee_name,
                     employee_id: agent.name,
                     designation: agent.designation,
@@ -3654,7 +3654,7 @@
 
             // 7. Create project nodes
             data.projects.forEach((proj, index) => {
-                const projId = createNode('project', deptStartX + deptSpacing * 4 - 200 + index * 220, empY + 200, {
+                const projId = createNode('project', deptStartX + deptSpacing * 4 + index * 280, empY + 300, {
                     name: proj.project_name,
                     project_id: proj.name,
                     status: proj.status,

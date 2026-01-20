@@ -4,72 +4,63 @@ A visual node-based dashboard for ERPNext organizations. View and manage your co
 
 ## Features
 
-- **Multi-Instance Support**: Switch between multiple ERPNext instances (InstanceA, 3BM, InstanceC)
+- **Multi-Instance Support**: Switch between multiple ERPNext instances
 - **Interactive Canvas**: Drag, zoom, and pan through your organization
-- **Real-time Data**: Live connection to ERPNext via Bridge API
+- **Direct ERPNext Connection**: Communicates directly with ERPNext REST API
+- **Settings Panel**: Configure instances and credentials via UI
 - **Node Types**: Companies, Departments, Employees, Agents, Projects, Tasks
 - **Visual Connections**: See reporting relationships and department hierarchies
 - **Properties Panel**: Edit node properties directly
 
 ## Quick Start
 
-### Option 1: Direct HTML (Development)
+### 1. Start the Dashboard
 
 ```bash
 # Start a local server
+npm start
+# or
 python3 -m http.server 8081
 
 # Open in browser
 open http://localhost:8081/src/index.html
 ```
 
-### Option 2: With Bridge API (Full Features)
+### 2. Configure ERPNext Connection
 
-The Bridge API provides a CORS-free proxy to ERPNext instances.
+1. Click the settings button (gear icon) in the top-right corner
+2. Select or add an ERPNext instance
+3. Enter your ERPNext URL, API Key, API Secret, and Company name
+4. Test the connection
+
+### 3. CORS Proxy (Development)
+
+If your ERPNext server doesn't have CORS enabled for localhost, use the included CORS proxy:
 
 ```bash
-# Start the bridge (from agent-army/bridge directory)
-cd ../bridge
-source venv/bin/activate
-uvicorn app.main:app --host 0.0.0.0 --port 8002
+# Start the CORS proxy
+node proxy.js
 
-# Start frontend server
-python3 -m http.server 8081
-
-# Open dashboard
-open http://localhost:8081/src/index.html
+# In the settings panel, enable "Use CORS Proxy"
 ```
+
+The proxy runs on `http://localhost:3333` and forwards requests to ERPNext with proper CORS headers.
 
 ## Configuration
 
-### ERPNext Instances
+### ERPNext API Credentials
 
-Edit `src/index.html` to configure your ERPNext instances:
+1. In ERPNext, go to **Settings > API Access**
+2. Generate an API Key and Secret for your user
+3. Enter these credentials in the dashboard settings
 
-```javascript
-const ERPNEXT_INSTANCES = {
-    impertire: {
-        name: 'InstanceA',
-        url: 'https://example.erpnext.com',
-        apiKey: 'your-api-key',
-        apiSecret: 'your-api-secret',
-        company: 'Your Company Name',
-        color: '#8b5cf6'
-    },
-    // Add more instances...
-};
-```
+### Pre-configured Instances
 
-### Bridge API
+The following instances are pre-configured (credentials can be updated in settings):
 
-Configure the Bridge API URL:
-
-```javascript
-const ERPNEXT_API = {
-    baseUrl: 'http://localhost:8002',  // Bridge API
-    // ...
-};
-```
+- **InstanceA**: https://example.erpnext.com
+- **InstanceB**: https://example2.erpnext.com
+- **InstanceC**: https://example3.erpnext.com
 
 ## Project Structure
 
@@ -77,8 +68,9 @@ const ERPNEXT_API = {
 ERPNext-Level-Dashboard/
 ├── src/
 │   └── index.html      # Main dashboard (single-file app)
-├── README.md
-└── package.json
+├── proxy.js            # CORS proxy for development
+├── package.json
+└── README.md
 ```
 
 ## Keyboard Shortcuts
@@ -102,6 +94,15 @@ ERPNext-Level-Dashboard/
 | Agent | AI employee | Employee (is_agent=1) |
 | Project | Work project | Project |
 | Task | Individual task | Task |
+
+## Production Deployment
+
+For production use, configure CORS on your ERPNext server to allow requests from your dashboard domain. In ERPNext:
+
+1. Go to **Setup > Website > Website Settings**
+2. Add your dashboard domain to "Allow CORS From"
+
+Alternatively, deploy the dashboard on the same domain as ERPNext.
 
 ## License
 

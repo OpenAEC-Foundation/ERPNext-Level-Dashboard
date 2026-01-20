@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Army - Node Canvas</title>
+    <title>ERPNext Level Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -1161,6 +1161,260 @@
         .erpnext-badge select option:disabled {
             color: #666;
         }
+        .erpnext-badge .settings-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .erpnext-badge .settings-btn:hover {
+            background: #333;
+        }
+
+        /* ========== SETTINGS MODAL ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
+        }
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #666;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .modal-close:hover {
+            background: #333;
+            color: #fff;
+        }
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .instance-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .instance-tab {
+            padding: 8px 16px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #888;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .instance-tab:hover {
+            border-color: #444;
+            color: #fff;
+        }
+        .instance-tab.active {
+            background: #333;
+            border-color: #4a9eff;
+            color: #fff;
+        }
+        .instance-tab .tab-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #4a9eff;
+        }
+        .form-group input[type="color"] {
+            padding: 4px;
+            height: 40px;
+            cursor: pointer;
+        }
+        .form-group .toggle-secret {
+            position: absolute;
+            right: 8px;
+            top: 28px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0.5;
+        }
+        .form-group .toggle-secret:hover {
+            opacity: 1;
+        }
+        .connection-test {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .test-btn {
+            padding: 8px 16px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .test-btn:hover {
+            background: #333;
+            border-color: #444;
+        }
+        #test-result {
+            font-size: 12px;
+            color: #888;
+        }
+        #test-result.success {
+            color: #22c55e;
+        }
+        #test-result.error {
+            color: #ef4444;
+        }
+        .btn-primary {
+            padding: 10px 20px;
+            background: #4a9eff;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: #3a8eef;
+        }
+        .btn-secondary {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #888;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            border-color: #444;
+            color: #fff;
+        }
+        .proxy-settings {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #333;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #888;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #4a9eff;
+        }
+        .proxy-url-group {
+            margin-top: 12px;
+        }
+        .proxy-url-group input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 12px;
+        }
+        .proxy-url-group small {
+            display: block;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #666;
+        }
+        .proxy-url-group code {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
 
         /* ========== MULTI-SELECTION ========== */
         #selection-box {
@@ -1617,6 +1871,67 @@
             <option value="domera" disabled>InstanceC (geen credentials)</option>
         </select>
         <span id="erpnext-status">Connected to InstanceA</span>
+        <button class="settings-btn" onclick="openSettingsModal()" title="Settings">⚙️</button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ERPNext Settings</h2>
+                <button class="modal-close" onclick="closeSettingsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="instance-tabs" id="instance-tabs">
+                    <!-- Tabs worden dynamisch gegenereerd -->
+                </div>
+                <div class="instance-form" id="instance-form">
+                    <div class="form-group">
+                        <label>Naam</label>
+                        <input type="text" id="settings-name" placeholder="Instance naam">
+                    </div>
+                    <div class="form-group">
+                        <label>URL</label>
+                        <input type="url" id="settings-url" placeholder="https://your-instance.erpnext.com">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="text" id="settings-apikey" placeholder="API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>API Secret</label>
+                        <input type="password" id="settings-apisecret" placeholder="API Secret">
+                        <button type="button" class="toggle-secret" onclick="toggleSecretVisibility()">👁</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Company</label>
+                        <input type="text" id="settings-company" placeholder="Company naam in ERPNext">
+                    </div>
+                    <div class="form-group">
+                        <label>Kleur</label>
+                        <input type="color" id="settings-color" value="#8b5cf6">
+                    </div>
+                </div>
+                <div class="proxy-settings">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="settings-use-proxy" onchange="toggleProxySetting()">
+                        <span>Use CORS Proxy (for development)</span>
+                    </label>
+                    <div class="proxy-url-group" id="proxy-url-group" style="display: none;">
+                        <input type="text" id="settings-proxy-url" placeholder="http://localhost:3333/proxy/">
+                        <small>Run <code>node proxy.js</code> to start the local proxy</small>
+                    </div>
+                </div>
+                <div class="connection-test" id="connection-test">
+                    <button onclick="testConnection()" class="test-btn">Test Connectie</button>
+                    <span id="test-result"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="addNewInstance()" class="btn-secondary">+ Nieuwe Instance</button>
+                <button onclick="saveSettings()" class="btn-primary">Opslaan</button>
+            </div>
+        </div>
     </div>
 
     <!-- Log toggle button -->
@@ -2146,14 +2461,15 @@
         };
 
         // ==================== ERPNEXT INSTANCES ====================
-        const ERPNEXT_INSTANCES = {
+        // Default instances - can be overridden from localStorage
+        const DEFAULT_INSTANCES = {
             impertire: {
                 name: 'InstanceA',
                 url: 'https://example.erpnext.com',
                 apiKey: 'REMOVED_API_KEY',
                 apiSecret: 'REMOVED_API_SECRET',
                 company: 'Example Company A',
-                color: '#8b5cf6'  // Purple
+                color: '#8b5cf6'
             },
             '3bm': {
                 name: 'InstanceB',
@@ -2161,28 +2477,82 @@
                 apiKey: 'REMOVED_API_KEY',
                 apiSecret: 'REMOVED_API_SECRET',
                 company: 'InstanceB V.O.F.',
-                color: '#059669'  // Green
+                color: '#059669'
             },
             domera: {
                 name: 'InstanceC',
-                url: 'https://example3.erpnext.com',  // TODO: Verify URL
-                apiKey: '',  // TODO: Add API key
-                apiSecret: '',  // TODO: Add API secret
+                url: 'https://example3.erpnext.com',
+                apiKey: '',
+                apiSecret: '',
                 company: 'InstanceC',
-                color: '#dc2626'  // Red
+                color: '#dc2626'
             }
         };
 
-        // Current active instance
-        let currentInstance = 'impertire';
+        // Load instances from localStorage or use defaults
+        function loadInstances() {
+            const saved = localStorage.getItem('erpnext_instances');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse saved instances:', e);
+                }
+            }
+            return { ...DEFAULT_INSTANCES };
+        }
+
+        // Save instances to localStorage
+        function saveInstances() {
+            localStorage.setItem('erpnext_instances', JSON.stringify(ERPNEXT_INSTANCES));
+        }
+
+        // Get last used instance from localStorage
+        function getLastInstance() {
+            return localStorage.getItem('erpnext_last_instance') || 'impertire';
+        }
+
+        // Save last used instance
+        function saveLastInstance(instanceKey) {
+            localStorage.setItem('erpnext_last_instance', instanceKey);
+        }
+
+        // Initialize instances
+        let ERPNEXT_INSTANCES = loadInstances();
+        let currentInstance = getLastInstance();
+
+        // ==================== CORS PROXY CONFIG ====================
+        // For development when ERPNext doesn't have CORS enabled
+        const CORS_PROXY = {
+            enabled: localStorage.getItem('use_cors_proxy') === 'true',
+            url: localStorage.getItem('cors_proxy_url') || 'http://localhost:3333/proxy/'
+        };
+
+        function setCorsProxy(enabled, proxyUrl = 'http://localhost:3333/proxy/') {
+            CORS_PROXY.enabled = enabled;
+            CORS_PROXY.url = proxyUrl;
+            localStorage.setItem('use_cors_proxy', enabled.toString());
+            localStorage.setItem('cors_proxy_url', proxyUrl);
+        }
 
         // ==================== ERPNEXT API CONFIG ====================
         const ERPNEXT_API = {
-            baseUrl: 'http://localhost:8002',  // Bridge API
-            directUrl: ERPNEXT_INSTANCES[currentInstance].url,
-            apiKey: ERPNEXT_INSTANCES[currentInstance].apiKey,
-            apiSecret: ERPNEXT_INSTANCES[currentInstance].apiSecret,
-            company: ERPNEXT_INSTANCES[currentInstance].company,
+            // Direct connection to ERPNext (or via CORS proxy)
+            get url() { return ERPNEXT_INSTANCES[currentInstance]?.url || ''; },
+            get apiKey() { return ERPNEXT_INSTANCES[currentInstance]?.apiKey || ''; },
+            get apiSecret() { return ERPNEXT_INSTANCES[currentInstance]?.apiSecret || ''; },
+            get company() { return ERPNEXT_INSTANCES[currentInstance]?.company || ''; },
+            get authHeader() {
+                return `token ${this.apiKey}:${this.apiSecret}`;
+            },
+            // Get the effective URL (with or without proxy)
+            getEffectiveUrl(endpoint) {
+                const baseUrl = this.url;
+                if (CORS_PROXY.enabled) {
+                    return `${CORS_PROXY.url}${encodeURIComponent(baseUrl + endpoint)}`;
+                }
+                return baseUrl + endpoint;
+            },
             // Cache for doctype metadata
             doctypeCache: new Map(),
             // Cache for link field options
@@ -2200,55 +2570,257 @@
 
             // Check if instance has credentials
             if (!instance.apiKey || !instance.apiSecret) {
-                alert(`${instance.name} heeft nog geen API credentials geconfigureerd.`);
+                if (confirm(`${instance.name} heeft nog geen API credentials.\n\nWil je de instellingen openen?`)) {
+                    openSettingsModal();
+                }
                 return;
             }
 
             currentInstance = instanceKey;
-            ERPNEXT_API.directUrl = instance.url;
-            ERPNEXT_API.apiKey = instance.apiKey;
-            ERPNEXT_API.apiSecret = instance.apiSecret;
-            ERPNEXT_API.company = instance.company;
+            saveLastInstance(instanceKey);
 
             // Clear caches
             ERPNEXT_API.doctypeCache.clear();
             ERPNEXT_API.linkOptionsCache.clear();
 
-            // Update UI
+            // Update UI and reload data
             updateInstanceSelector();
+            loadFromERPNext();
 
-            // Update bridge config and reload
-            updateBridgeConfig(instance).then(() => {
-                loadFromERPNext();
-            });
-
-            console.log('Switched to instance:', instance.name);
-        }
-
-        // Update bridge configuration
-        async function updateBridgeConfig(instance) {
-            try {
-                // For now, we'll reload data directly - bridge config update would require backend changes
-                // The frontend will pass the company parameter to filter data
-                console.log('Using instance:', instance.name, 'Company:', instance.company);
-            } catch (error) {
-                console.error('Failed to update bridge config:', error);
-            }
+            console.log('Switched to instance:', instance.name, '- URL:', instance.url);
         }
 
         // Update instance selector UI
         function updateInstanceSelector() {
             const selector = document.getElementById('instance-selector');
             const badge = document.getElementById('erpnext-badge');
+
+            // Update dropdown options
             if (selector) {
+                selector.innerHTML = '';
+                Object.entries(ERPNEXT_INSTANCES).forEach(([key, inst]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = inst.name;
+                    option.disabled = !inst.apiKey || !inst.apiSecret;
+                    if (!inst.apiKey) option.textContent += ' (no credentials)';
+                    selector.appendChild(option);
+                });
                 selector.value = currentInstance;
             }
+
             if (badge) {
                 const instance = ERPNEXT_INSTANCES[currentInstance];
-                badge.style.borderColor = instance.color;
-                document.getElementById('erpnext-status').textContent = `Connected to ${instance.name}`;
+                badge.style.borderColor = instance?.color || '#333';
+                document.getElementById('erpnext-status').textContent = instance ? `${instance.name}` : 'Not configured';
             }
         }
+
+        // Add new instance
+        function addInstance(key, config) {
+            ERPNEXT_INSTANCES[key] = config;
+            saveInstances();
+            updateInstanceSelector();
+        }
+
+        // Update instance config
+        function updateInstance(key, config) {
+            if (ERPNEXT_INSTANCES[key]) {
+                ERPNEXT_INSTANCES[key] = { ...ERPNEXT_INSTANCES[key], ...config };
+                saveInstances();
+                updateInstanceSelector();
+            }
+        }
+
+        // Remove instance
+        function removeInstance(key) {
+            if (key !== 'impertire' && key !== '3bm') { // Protect defaults
+                delete ERPNEXT_INSTANCES[key];
+                saveInstances();
+                if (currentInstance === key) {
+                    switchInstance('impertire');
+                }
+                updateInstanceSelector();
+            }
+        }
+
+        // ==================== SETTINGS MODAL ====================
+
+        let selectedSettingsInstance = null;
+
+        function openSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = 'flex';
+            renderInstanceTabs();
+            selectInstanceTab(currentInstance);
+
+            // Load proxy settings
+            document.getElementById('settings-use-proxy').checked = CORS_PROXY.enabled;
+            document.getElementById('settings-proxy-url').value = CORS_PROXY.url;
+            document.getElementById('proxy-url-group').style.display = CORS_PROXY.enabled ? 'block' : 'none';
+        }
+
+        function toggleProxySetting() {
+            const checked = document.getElementById('settings-use-proxy').checked;
+            document.getElementById('proxy-url-group').style.display = checked ? 'block' : 'none';
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = 'none';
+        }
+
+        function renderInstanceTabs() {
+            const tabsContainer = document.getElementById('instance-tabs');
+            tabsContainer.innerHTML = '';
+
+            Object.entries(ERPNEXT_INSTANCES).forEach(([key, inst]) => {
+                const tab = document.createElement('div');
+                tab.className = `instance-tab ${key === selectedSettingsInstance ? 'active' : ''}`;
+                tab.onclick = () => selectInstanceTab(key);
+                tab.innerHTML = `
+                    <span class="tab-dot" style="background: ${inst.color}"></span>
+                    ${inst.name}
+                `;
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        function selectInstanceTab(key) {
+            selectedSettingsInstance = key;
+            const inst = ERPNEXT_INSTANCES[key];
+
+            // Update tabs
+            document.querySelectorAll('.instance-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            const activeTab = [...document.querySelectorAll('.instance-tab')].find(t => t.textContent.includes(inst.name));
+            if (activeTab) activeTab.classList.add('active');
+
+            // Fill form
+            document.getElementById('settings-name').value = inst.name || '';
+            document.getElementById('settings-url').value = inst.url || '';
+            document.getElementById('settings-apikey').value = inst.apiKey || '';
+            document.getElementById('settings-apisecret').value = inst.apiSecret || '';
+            document.getElementById('settings-company').value = inst.company || '';
+            document.getElementById('settings-color').value = inst.color || '#8b5cf6';
+
+            // Clear test result
+            document.getElementById('test-result').textContent = '';
+            document.getElementById('test-result').className = '';
+        }
+
+        function toggleSecretVisibility() {
+            const input = document.getElementById('settings-apisecret');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function saveSettings() {
+            if (!selectedSettingsInstance) return;
+
+            const updatedConfig = {
+                name: document.getElementById('settings-name').value,
+                url: document.getElementById('settings-url').value.replace(/\/$/, ''), // Remove trailing slash
+                apiKey: document.getElementById('settings-apikey').value,
+                apiSecret: document.getElementById('settings-apisecret').value,
+                company: document.getElementById('settings-company').value,
+                color: document.getElementById('settings-color').value
+            };
+
+            ERPNEXT_INSTANCES[selectedSettingsInstance] = updatedConfig;
+            saveInstances();
+            updateInstanceSelector();
+            renderInstanceTabs();
+
+            // Save proxy settings
+            const useProxy = document.getElementById('settings-use-proxy').checked;
+            const proxyUrl = document.getElementById('settings-proxy-url').value || 'http://localhost:3333/proxy/';
+            setCorsProxy(useProxy, proxyUrl);
+
+            showNotification('Settings saved', 'success');
+            closeSettingsModal();
+        }
+
+        function addNewInstance() {
+            const key = 'custom_' + Date.now();
+            const newInstance = {
+                name: 'New Instance',
+                url: '',
+                apiKey: '',
+                apiSecret: '',
+                company: '',
+                color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+            };
+
+            ERPNEXT_INSTANCES[key] = newInstance;
+            saveInstances();
+            renderInstanceTabs();
+            selectInstanceTab(key);
+        }
+
+        async function testConnection() {
+            const resultEl = document.getElementById('test-result');
+            resultEl.textContent = 'Testing...';
+            resultEl.className = '';
+
+            const baseUrl = document.getElementById('settings-url').value.replace(/\/$/, '');
+            const apiKey = document.getElementById('settings-apikey').value;
+            const apiSecret = document.getElementById('settings-apisecret').value;
+            const useProxy = document.getElementById('settings-use-proxy').checked;
+            const proxyUrl = document.getElementById('settings-proxy-url').value || 'http://localhost:3333/proxy/';
+
+            if (!baseUrl || !apiKey || !apiSecret) {
+                resultEl.textContent = 'Fill in all fields first';
+                resultEl.className = 'error';
+                return;
+            }
+
+            // Build URL (through proxy if enabled)
+            const endpoint = '/api/method/frappe.auth.get_logged_user';
+            const url = useProxy
+                ? `${proxyUrl}${encodeURIComponent(baseUrl + endpoint)}`
+                : `${baseUrl}${endpoint}`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `token ${apiKey}:${apiSecret}`,
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultEl.textContent = `Connected as ${data.message}${useProxy ? ' (via proxy)' : ''}`;
+                    resultEl.className = 'success';
+                } else {
+                    resultEl.textContent = `Error: ${response.status} ${response.statusText}`;
+                    resultEl.className = 'error';
+                }
+            } catch (error) {
+                if (!useProxy && error.message.includes('CORS')) {
+                    resultEl.textContent = 'CORS error - enable the proxy or configure ERPNext CORS';
+                } else {
+                    resultEl.textContent = `Connection failed: ${error.message}`;
+                }
+                resultEl.className = 'error';
+            }
+        }
+
+        // Close modal on escape or click outside
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSettingsModal();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('settings-modal');
+            if (e.target === modal) {
+                closeSettingsModal();
+            }
+        });
 
         // Track dirty state for save operations
         const dirtyNodes = new Set();
@@ -2291,12 +2863,14 @@
                 buildOrganizationFromData(erpData);
 
                 badge.classList.remove('disconnected');
-                document.getElementById('erpnext-status').textContent = 'Connected to InstanceA';
+                const instance = ERPNEXT_INSTANCES[currentInstance];
+                document.getElementById('erpnext-status').textContent = `Connected to ${instance?.name || currentInstance}`;
 
             } catch (error) {
                 console.error('Failed to load from ERPNext:', error);
                 badge.classList.add('disconnected');
-                document.getElementById('erpnext-status').textContent = 'Connection failed';
+                const instance = ERPNEXT_INSTANCES[currentInstance];
+                document.getElementById('erpnext-status').textContent = `${instance?.name || currentInstance}: Connection failed`;
             } finally {
                 refreshBtn.classList.remove('loading');
                 loadingOverlay.style.display = 'none';
@@ -2305,23 +2879,34 @@
 
         // ==================== ERPNEXT DIRECT API ====================
 
-        // Make authenticated request to ERPNext
+        // Make authenticated request to ERPNext (with optional CORS proxy)
         async function erpnextFetch(endpoint, options = {}) {
-            const url = `${ERPNEXT_API.baseUrl}${endpoint}`;
+            if (!ERPNEXT_API.url) {
+                throw new Error('ERPNext URL not configured');
+            }
+
+            // Build URL (through proxy if enabled)
+            const url = CORS_PROXY.enabled
+                ? `${CORS_PROXY.url}${encodeURIComponent(ERPNEXT_API.url + endpoint)}`
+                : `${ERPNEXT_API.url}${endpoint}`;
+
             const headers = {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 ...options.headers
             };
 
-            // Add authentication if configured
+            // Add token authentication
             if (ERPNEXT_API.apiKey && ERPNEXT_API.apiSecret) {
-                headers['Authorization'] = `token ${ERPNEXT_API.apiKey}:${ERPNEXT_API.apiSecret}`;
+                headers['Authorization'] = ERPNEXT_API.authHeader;
             }
+
+            console.log(`[ERPNext API] ${options.method || 'GET'} ${endpoint}${CORS_PROXY.enabled ? ' (via proxy)' : ''}`);
 
             const response = await fetch(url, {
                 ...options,
                 headers,
-                credentials: 'include' // For session-based auth
+                mode: 'cors'
             });
 
             if (!response.ok) {
@@ -2452,47 +3037,91 @@
 
         async function fetchERPNextData() {
             const company = ERPNEXT_API.company;
+            const instance = ERPNEXT_INSTANCES[currentInstance];
 
-            // Use Bridge API endpoint for canvas data (single request, no CORS issues)
-            try {
-                const url = `${ERPNEXT_API.baseUrl}/api/organization/canvas-data?company=${encodeURIComponent(company)}&instance=${currentInstance}`;
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Bridge API error: ${response.status}`);
-                }
-                const data = await response.json();
-                console.log(`Loaded from Bridge API (${currentInstance}):`, data);
-                return data;
-            } catch (bridgeError) {
-                console.warn('Bridge API failed, falling back to direct ERPNext:', bridgeError);
-
-                // Fallback to direct ERPNext API
-                const [companyDoc, departments, employees, projects] = await Promise.all([
-                    erpnextGetDoc('Company', company),
-                    erpnextGetList('Department', {
-                        filters: { company, disabled: 0 },
-                        fields: ['name', 'department_name', 'parent_department', 'is_group'],
-                        limit: 500
-                    }),
-                    erpnextGetList('Employee', {
-                        filters: { company, status: 'Active' },
-                        fields: ['*'],
-                        limit: 500
-                    }),
-                    erpnextGetList('Project', {
-                        filters: { company },
-                        fields: ['*'],
-                        limit: 200
-                    })
-                ]);
-
-                return {
-                    company: companyDoc,
-                    departments,
-                    employees,
-                    projects
-                };
+            if (!instance || !instance.apiKey || !instance.apiSecret) {
+                throw new Error('ERPNext credentials not configured. Open settings to configure.');
             }
+
+            console.log(`Fetching data from ${instance.name} (${instance.url}) for company: ${company}`);
+
+            // Direct ERPNext API calls
+            const [companyDoc, departments, employees, projects] = await Promise.all([
+                erpnextGetDoc('Company', company),
+                erpnextGetList('Department', {
+                    filters: { company, disabled: 0 },
+                    fields: ['name', 'department_name', 'parent_department', 'is_group', 'disabled'],
+                    limit: 500
+                }),
+                erpnextGetList('Employee', {
+                    filters: { company, status: 'Active' },
+                    fields: [
+                        'name', 'employee_name', 'first_name', 'last_name',
+                        'designation', 'department', 'status', 'user_id',
+                        'reports_to', 'date_of_joining', 'gender'
+                    ],
+                    limit: 500
+                }),
+                erpnextGetList('Project', {
+                    filters: { company },
+                    fields: [
+                        'name', 'project_name', 'status', 'percent_complete',
+                        'priority', 'department', 'expected_start_date',
+                        'expected_end_date', 'is_active'
+                    ],
+                    limit: 200
+                })
+            ]);
+
+            // Transform to canvas format
+            const result = {
+                company: {
+                    name: companyDoc?.company_name || companyDoc?.name || company,
+                    abbr: companyDoc?.abbr,
+                    country: companyDoc?.country,
+                    default_currency: companyDoc?.default_currency,
+                    parent_company: companyDoc?.parent_company,
+                    tax_id: companyDoc?.tax_id
+                },
+                departments: departments.map(d => ({
+                    name: d.name,
+                    department_name: d.department_name,
+                    parent_department: d.parent_department || 'All Departments',
+                    is_group: d.is_group || 0
+                })),
+                employees: employees.map(e => ({
+                    name: e.name,
+                    employee_name: e.employee_name,
+                    first_name: e.first_name,
+                    last_name: e.last_name,
+                    designation: e.designation,
+                    department: e.department,
+                    status: e.status,
+                    user_id: e.user_id,
+                    reports_to: e.reports_to,
+                    is_agent: e.is_agent || 0,
+                    date_of_joining: e.date_of_joining,
+                    gender: e.gender
+                })),
+                projects: projects.map(p => ({
+                    name: p.name,
+                    project_name: p.project_name,
+                    status: p.status,
+                    percent_complete: p.percent_complete || 0,
+                    priority: p.priority,
+                    department: p.department,
+                    is_active: p.is_active
+                }))
+            };
+
+            console.log(`Loaded from ERPNext (${currentInstance}):`, {
+                company: result.company.name,
+                departments: result.departments.length,
+                employees: result.employees.length,
+                projects: result.projects.length
+            });
+
+            return result;
         }
 
         function updateConnectionStatus(connected) {
@@ -2517,23 +3146,57 @@
 
             const nodeType = nodeTypes[nodeData.type];
             const doctype = nodeType?.doctype;
-            if (!doctype || doctype === 'Company') return;
+            if (!doctype || doctype === 'Company') {
+                showNotification('Cannot save Company nodes', 'warning');
+                return;
+            }
 
-            const erpnextId = nodeData.data._erpnext_id;
+            // Get ERPNext document name from various possible fields
+            const erpnextId = nodeData.data._erpnext_id ||
+                              nodeData.data.employee_id ||
+                              nodeData.data.project_id ||
+                              nodeData.data.erpnext_name ||
+                              nodeData.data.name;
+
+            // Prepare data for ERPNext (remove internal fields)
+            const saveData = { ...nodeData.data };
+            delete saveData._erpnext_id;
+            delete saveData.employee_id;
+            delete saveData.project_id;
+            delete saveData.erpnext_name;
+
+            // Show saving indicator
+            const saveBtn = document.getElementById(`save-node-btn-${nodeId}`);
+            if (saveBtn) {
+                saveBtn.innerHTML = '<span>⏳</span> Saving...';
+                saveBtn.disabled = true;
+            }
 
             try {
                 let result;
-                if (erpnextId && !erpnextId.startsWith('NEW-')) {
-                    // UPDATE existing document
-                    result = await erpnextUpdateDoc(doctype, erpnextId, nodeData.data);
-                } else {
+                const isNewDoc = !erpnextId || erpnextId.startsWith('NEW-');
+
+                if (isNewDoc) {
                     // CREATE new document
-                    result = await erpnextCreateDoc(doctype, nodeData.data);
+                    console.log(`Creating new ${doctype}:`, saveData);
+                    result = await erpnextCreateDoc(doctype, saveData);
+                    // Store the new ERPNext ID
                     nodeData.data._erpnext_id = result.name;
+                    nodeData.data.employee_id = doctype === 'Employee' ? result.name : undefined;
+                    nodeData.data.project_id = doctype === 'Project' ? result.name : undefined;
+                    nodeData.data.erpnext_name = doctype === 'Department' ? result.name : undefined;
+                    showNotification(`Created ${doctype} in ERPNext`, 'success');
+                } else {
+                    // UPDATE existing document
+                    console.log(`Updating ${doctype} ${erpnextId}:`, saveData);
+                    result = await erpnextUpdateDoc(doctype, erpnextId, saveData);
+                    showNotification(`Saved ${doctype} to ERPNext`, 'success');
                 }
 
                 dirtyNodes.delete(nodeId);
-                showNotification('Saved to ERPNext', 'success');
+
+                // Update the node display
+                updateNodeDisplay(nodeId);
 
                 // Refresh connections in case Link fields changed
                 await createAutoConnections();
@@ -2544,6 +3207,12 @@
                 console.error('Save error:', error);
                 showNotification(`Save failed: ${error.message}`, 'error');
                 throw error;
+            } finally {
+                // Reset button
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<span>💾</span> Save to ERPNext';
+                    saveBtn.disabled = false;
+                }
             }
         }
 
@@ -3047,6 +3716,53 @@
             updateMinimap();
 
             return id;
+        }
+
+        // Update the visual display of a node (after property changes)
+        function updateNodeDisplay(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData) return;
+
+            const nodeEl = document.getElementById(nodeId);
+            if (!nodeEl) return;
+
+            const nodeType = nodeTypes[nodeData.type];
+            const d = nodeData.data;
+
+            // Update title
+            const titleEl = nodeEl.querySelector('.node-title');
+            if (titleEl) {
+                titleEl.textContent = d.name || d.employee_name || d.project_name || d.department_name || nodeType.title;
+            }
+
+            // Update subtitle (designation for employees)
+            const subtitleEl = nodeEl.querySelector('.node-subtitle');
+            if (subtitleEl && d.designation) {
+                subtitleEl.textContent = d.designation;
+            }
+
+            // Update body content based on type
+            const bodyEl = nodeEl.querySelector('.node-body');
+            if (bodyEl) {
+                let bodyContent = '';
+
+                if (nodeData.type === 'project') {
+                    bodyContent = `
+                        <div class="port port-input" data-port="input" data-node="${nodeId}"></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span>${d.status || 'Open'}</span>
+                            <div style="flex: 1; height: 4px; background: #333; border-radius: 2px;">
+                                <div style="width: ${d.percent_complete || 0}%; height: 100%; background: ${nodeType.color}; border-radius: 2px;"></div>
+                            </div>
+                            <span style="color: #666;">${d.percent_complete || 0}%</span>
+                        </div>
+                        <div class="port port-output" data-port="output" data-node="${nodeId}"></div>
+                    `;
+                    bodyEl.innerHTML = bodyContent;
+                } else if (nodeData.type === 'employee' || nodeData.type === 'boss') {
+                    // Keep existing body, just update if needed
+                }
+            }
         }
 
         async function deleteNode(id) {
@@ -3904,11 +4620,13 @@
                 `;
             }
 
+            // Save button
             html += `
                 <div style="margin-top: 16px; padding-top: 20px; border-top: 1px solid #333;">
-                    <button onclick="deleteNode('${nodeId}'); closePropertiesPanel();"
-                            style="background: #dc2626; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%;">
-                        Delete Node
+                    <button onclick="saveNodeToERPNext('${nodeId}')"
+                            id="save-node-btn-${nodeId}"
+                            style="background: #22c55e; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span>💾</span> Save to ERPNext
                     </button>
                 </div>
             `;

@@ -509,6 +509,13 @@
             min-width: 160px;
             background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
             border: 2px solid #ef4444;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .node.shape-document:hover {
+            border-color: #f87171;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+            transform: translateY(-2px);
         }
         .node.shape-document::before {
             content: '';
@@ -627,32 +634,65 @@
 
         /* Node type specifiek: Department - Level 2 - 2.2x */
         .node[data-type="department"] {
-            min-width: 220px;
-            border: 3px solid #4a9eff;
-            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
-            box-shadow: 0 0 30px rgba(74, 158, 255, 0.2);
+            min-width: 260px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #1e2a4a 0%, #0f1629 50%, #0a0f1a 100%);
+            box-shadow:
+                0 0 0 2px rgba(74, 158, 255, 0.4),
+                0 8px 32px rgba(74, 158, 255, 0.15),
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: visible;
+        }
+        .node[data-type="department"]:hover {
+            box-shadow:
+                0 0 0 2px rgba(74, 158, 255, 0.6),
+                0 12px 40px rgba(74, 158, 255, 0.25),
+                0 4px 12px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+        .node[data-type="department"].selected {
+            box-shadow:
+                0 0 0 3px #4a9eff,
+                0 0 20px rgba(74, 158, 255, 0.5),
+                0 12px 40px rgba(74, 158, 255, 0.3);
         }
         .node[data-type="department"] .node-header {
-            padding: 18px 22px;
-            background: rgba(74, 158, 255, 0.1);
+            padding: 20px 24px;
+            background: linear-gradient(180deg, rgba(74, 158, 255, 0.12) 0%, rgba(74, 158, 255, 0.04) 100%);
+            border-radius: 14px 14px 0 0;
+            border-bottom: 1px solid rgba(74, 158, 255, 0.15);
         }
         .node[data-type="department"] .node-title {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(180deg, #fff 0%, #b8d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .node[data-type="department"] .node-subtitle {
             font-size: 11px;
+            color: #6b8cbe;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
         }
         .node[data-type="department"] .node-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 28px;
-            background: rgba(74, 158, 255, 0.2);
+            width: 52px;
+            height: 52px;
+            font-size: 30px;
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.3) 0%, rgba(74, 158, 255, 0.1) 100%);
             color: #4a9eff;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 158, 255, 0.2);
         }
         .node[data-type="department"] .node-body {
-            padding: 14px 22px;
+            padding: 16px 24px;
             font-size: 13px;
+            color: #8aa4c8;
         }
 
         /* Node type specifiek: Subdepartment - Level 3 - 1.7x */
@@ -688,65 +728,67 @@
         /* ========== COMBINED NODE: Department + Afdelingshoofd Addon ========== */
         .node-addon {
             position: absolute;
-            top: -20px;
-            right: -25px;
-            width: 60px;
-            height: 70px;
-            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            top: -30px;
+            right: -35px;
+            width: 90px;
+            height: 105px;
+            background: linear-gradient(180deg, #1f1f2e 0%, #12121a 100%);
             border: 3px solid #f97316;
-            border-radius: 50% 50% 12px 12px;
+            border-radius: 50% 50% 16px 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 2px;
+            gap: 4px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+            box-shadow: 0 6px 25px rgba(249, 115, 22, 0.35);
             transition: all 0.2s ease;
             z-index: 10;
         }
         .node-addon:hover {
             border-color: #fb923c;
-            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+            box-shadow: 0 8px 30px rgba(249, 115, 22, 0.5);
             transform: scale(1.05);
         }
         .node-addon.selected {
             border-color: #4a9eff;
-            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3), 0 6px 20px rgba(74, 158, 255, 0.4);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.3), 0 8px 30px rgba(74, 158, 255, 0.4);
         }
         .node-addon .addon-avatar {
-            width: 36px;
-            height: 36px;
+            width: 54px;
+            height: 54px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid rgba(249, 115, 22, 0.4);
+            border: 3px solid rgba(249, 115, 22, 0.5);
             background: #252525;
         }
         .node-addon .addon-icon {
-            width: 36px;
-            height: 36px;
+            width: 54px;
+            height: 54px;
             border-radius: 50%;
             background: rgba(249, 115, 22, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 28px;
         }
         .node-addon .addon-name {
-            font-size: 8px;
-            color: #aaa;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ccc;
             text-align: center;
-            max-width: 54px;
+            max-width: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            padding: 0 2px;
+            padding: 0 4px;
         }
         .node-addon .addon-label {
-            font-size: 7px;
-            color: #666;
+            font-size: 9px;
+            color: #888;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
+            font-weight: 500;
         }
 
         /* Empty addon state (no head assigned) */
@@ -762,6 +804,68 @@
         .node-addon.empty .addon-icon {
             background: rgba(255,255,255,0.05);
             color: #555;
+        }
+
+        /* ========== NODE CONDITION INDICATOR ========== */
+        /* 0-1: Gevaar (Danger) - Red
+           2: Verval (Decay) - Orange
+           3: Normaal (Normal) - Gray/Neutral
+           4: Vooruitgang (Progress) - Green */
+        .node-condition {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+        }
+        .node-condition[data-condition="0"],
+        .node-condition[data-condition="1"] {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+        }
+        .node-condition[data-condition="2"] {
+            background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+            box-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
+        }
+        .node-condition[data-condition="3"] {
+            background: linear-gradient(90deg, #6b7280 0%, #4b5563 100%);
+            box-shadow: none;
+        }
+        .node-condition[data-condition="4"] {
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+        }
+        /* Condition pulse animation for danger */
+        .node-condition[data-condition="0"],
+        .node-condition[data-condition="1"] {
+            animation: conditionPulse 2s ease-in-out infinite;
+        }
+        @keyframes conditionPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        /* Condition label tooltip */
+        .node-condition::after {
+            content: attr(data-label);
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .node:hover .node-condition::after {
+            opacity: 1;
         }
 
         /* Node type specifiek: Task - Level 5 (smallest) */
@@ -2410,13 +2514,15 @@
                     name: 'Policy Name',
                     type: 'Guideline',
                     applies_to: '',
-                    status: 'Active'
+                    status: 'Active',
+                    wiki_url: ''
                 },
                 fields: [
                     { key: 'name', label: 'Policy Name', type: 'text' },
                     { key: 'type', label: 'Type', type: 'select', options: ['Guideline', 'Procedure', 'Rule', 'SLA'] },
                     { key: 'applies_to', label: 'Applies To', type: 'text' },
-                    { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Active', 'Archived'] }
+                    { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Active', 'Archived'] },
+                    { key: 'wiki_url', label: 'Wiki URL', type: 'url' }
                 ],
                 canConnect: ['company', 'department', 'employee', 'agent']
             },
@@ -3444,6 +3550,16 @@
                 if (cto) {
                     connectNodes(nodeMap.get(cto.name), deptId);
                 }
+
+                // Create policy node for department (linked to wiki)
+                const policyId = createNode('policy', deptStartX + deptSpacing * index - 120, deptY + 180, {
+                    name: `${dept.department_name} Beleid`,
+                    type: 'Guideline',
+                    applies_to: dept.department_name,
+                    status: 'Active',
+                    wiki_url: `https://wiki.example.com/departments/${encodeURIComponent(dept.department_name.toLowerCase().replace(/\s+/g, '-'))}`
+                });
+                connectNodes(deptId, policyId);
             });
 
             // 4. Create sub-departments
@@ -3647,7 +3763,8 @@
             } else if (type === 'skill') {
                 bodyContent = `<span style="color: ${nodeType.color}">${d.category || 'Skill'}</span>`;
             } else if (type === 'policy') {
-                bodyContent = `<span>${d.type || 'Guideline'} • ${d.status || 'Active'}</span>`;
+                const wikiHint = d.wiki_url ? `<div style="margin-top: 4px; font-size: 10px; color: #888;">🔗 Dubbelklik voor wiki</div>` : '';
+                bodyContent = `<span>${d.type || 'Guideline'} • ${d.status || 'Active'}</span>${wikiHint}`;
             } else if (type === 'jaardoel') {
                 const progressColor = (d.progress || 0) >= 100 ? '#22c55e' : (d.progress || 0) >= 50 ? '#eab308' : '#ef4444';
                 bodyContent = `
@@ -3686,10 +3803,16 @@
                 ? `<div class="node-erpnext-link" title="Open in ERPNext">↗</div>`
                 : '';
 
+            // Condition indicator (0-1: Gevaar, 2: Verval, 3: Normaal, 4: Vooruitgang)
+            const conditionLabels = { 0: 'Gevaar', 1: 'Gevaar', 2: 'Verval', 3: 'Normaal', 4: 'Vooruitgang' };
+            const condition = d.condition !== undefined ? d.condition : 3; // Default: Normaal
+            const conditionHTML = `<div class="node-condition" data-condition="${condition}" data-label="${conditionLabels[condition] || 'Normaal'}"></div>`;
+
             // Special structure for hexagon shapes (agents)
             if (nodeType.shape === 'hexagon') {
                 nodeEl.innerHTML = `
                     <div class="node-inner">
+                        ${conditionHTML}
                         ${erpnextLink}
                         <div class="node-header">
                             <div class="node-icon">${nodeType.icon}</div>
@@ -3738,6 +3861,7 @@
                 }
 
                 nodeEl.innerHTML = `
+                    ${conditionHTML}
                     ${erpnextLink}
                     ${addonHTML}
                     <div class="node-header" style="border-left: 3px solid ${nodeType.color};">
@@ -4555,12 +4679,40 @@
                 console.error('Failed to fetch doctype meta:', error);
             }
 
+            // Get current condition
+            const currentCondition = nodeData.data.condition !== undefined ? nodeData.data.condition : 3;
+
             let html = `
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #333;">
                     <div style="font-size: 28px;">${nodeType.icon}</div>
                     <div>
                         <h3 style="color: ${nodeType.color}; margin: 0;">${nodeData.data.name || nodeData.data.employee_name || nodeData.data.project_name || nodeType.title}</h3>
                         <div style="color: #666; font-size: 12px;">${doctype}</div>
+                    </div>
+                </div>
+
+                <!-- Condition Selector -->
+                <div style="margin-bottom: 20px; padding: 12px; background: #1a1a1a; border-radius: 8px;">
+                    <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                        Conditie
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="updateNodeCondition('${nodeId}', 0)" title="Gevaar"
+                                style="flex: 1; padding: 8px 4px; border: 2px solid ${currentCondition <= 1 ? '#ef4444' : '#333'}; background: ${currentCondition <= 1 ? 'rgba(239, 68, 68, 0.2)' : '#252525'}; color: #ef4444; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                            🔴 Gevaar
+                        </button>
+                        <button onclick="updateNodeCondition('${nodeId}', 2)" title="Verval"
+                                style="flex: 1; padding: 8px 4px; border: 2px solid ${currentCondition === 2 ? '#f97316' : '#333'}; background: ${currentCondition === 2 ? 'rgba(249, 115, 22, 0.2)' : '#252525'}; color: #f97316; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                            🟠 Verval
+                        </button>
+                        <button onclick="updateNodeCondition('${nodeId}', 3)" title="Normaal"
+                                style="flex: 1; padding: 8px 4px; border: 2px solid ${currentCondition === 3 ? '#6b7280' : '#333'}; background: ${currentCondition === 3 ? 'rgba(107, 114, 128, 0.2)' : '#252525'}; color: #9ca3af; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                            ⚪ Normaal
+                        </button>
+                        <button onclick="updateNodeCondition('${nodeId}', 4)" title="Vooruitgang"
+                                style="flex: 1; padding: 8px 4px; border: 2px solid ${currentCondition === 4 ? '#22c55e' : '#333'}; background: ${currentCondition === 4 ? 'rgba(34, 197, 94, 0.2)' : '#252525'}; color: #22c55e; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                            🟢 Vooruit
+                        </button>
                     </div>
                 </div>
             `;
@@ -4908,6 +5060,32 @@
             }
         }
 
+        // Update node condition (0-1: Gevaar, 2: Verval, 3: Normaal, 4: Vooruitgang)
+        function updateNodeCondition(nodeId, condition) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData) return;
+
+            nodeData.data.condition = condition;
+
+            // Update visual indicator
+            const nodeEl = document.getElementById(nodeId);
+            if (nodeEl) {
+                const conditionEl = nodeEl.querySelector('.node-condition');
+                if (conditionEl) {
+                    const labels = { 0: 'Gevaar', 1: 'Gevaar', 2: 'Verval', 3: 'Normaal', 4: 'Vooruitgang' };
+                    conditionEl.dataset.condition = condition;
+                    conditionEl.dataset.label = labels[condition] || 'Normaal';
+                }
+            }
+
+            // Mark as dirty
+            dirtyNodes.add(nodeId);
+            scheduleAutoSave();
+
+            // Re-open properties panel to update button states
+            openPropertiesPanel(nodeId);
+        }
+
         // ==================== CONTEXT MENU ====================
         function showContextMenu(x, y) {
             contextMenu.style.left = `${x}px`;
@@ -5122,7 +5300,7 @@
                 canvasContainer.style.cursor = 'default';
             });
 
-            // Double click - open properties
+            // Double click - open properties or wiki URL for policy nodes
             canvasContainer.addEventListener('dblclick', (e) => {
                 // Check if clicked on addon
                 const addonEl = e.target.closest('.node-addon');
@@ -5134,6 +5312,15 @@
 
                 const nodeEl = e.target.closest('.node');
                 if (nodeEl) {
+                    const nodeData = state.nodes.get(nodeEl.id);
+
+                    // For policy nodes with wiki_url, open the wiki page
+                    if (nodeData && nodeData.type === 'policy' && nodeData.data.wiki_url) {
+                        window.open(nodeData.data.wiki_url, '_blank');
+                        return;
+                    }
+
+                    // Otherwise open properties panel
                     openPropertiesPanel(nodeEl.id);
                 }
             });

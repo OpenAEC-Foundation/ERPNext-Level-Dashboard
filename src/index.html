@@ -1,0 +1,4657 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Army - Node Canvas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* ========== CANVAS CONTAINER ========== */
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-origin: 0 0;
+        }
+
+        /* Grid achtergrond */
+        #grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 200%;
+            background-image:
+                radial-gradient(circle, #222 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ========== CONNECTIONS (SVG) ========== */
+        #connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        .connection {
+            fill: none;
+            stroke: #4a9eff;
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+
+        .connection-preview {
+            fill: none;
+            stroke: #4a9eff;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            opacity: 0.6;
+        }
+
+        #arrowhead {
+            fill: #4a9eff;
+        }
+
+        /* ========== NODES ========== */
+        .node {
+            position: absolute;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 8px;
+            min-width: 150px;
+            cursor: grab;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .node:hover {
+            border-color: #444;
+        }
+
+        .node.selected {
+            border-color: #4a9eff;
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3), 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .node.dragging {
+            cursor: grabbing;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            z-index: 1000;
+        }
+
+        .node-header {
+            background: #252525;
+            padding: 10px 14px;
+            border-radius: 6px 6px 0 0;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .node-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .node-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            flex: 1;
+        }
+
+        .node-subtitle {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .node-header-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .node-body {
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .node-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .status-dot.idle { background: #6b7280; }
+        .status-dot.busy { background: #f59e0b; }
+        .status-dot.offline { background: #ef4444; }
+
+        /* ========== NODE SIZES BY LEVEL ========== */
+        /* Level 5 (smallest): Task, Skill - base size */
+        /* Level 4: Employee, Agent, Rapport, KPI - 1.3x */
+        /* Level 3: Afdelingshoofd, Agent Boss, Project, Jaardoel, Policy - 1.7x */
+        /* Level 2: Department, Boss - 2.2x */
+        /* Level 1 (largest): Company - 3x */
+
+        /* Shape: Large (Company) - Level 1 - 3x */
+        .node.shape-large {
+            min-width: 300px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 3px solid #0ea5e9;
+            box-shadow: 0 0 40px rgba(14, 165, 233, 0.25);
+        }
+        .node.shape-large .node-header {
+            padding: 24px 30px;
+            background: transparent;
+            border-bottom: 2px solid rgba(14, 165, 233, 0.3);
+        }
+        .node.shape-large .node-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .node.shape-large .node-subtitle {
+            font-size: 12px;
+        }
+        .node.shape-large .node-icon {
+            width: 56px;
+            height: 56px;
+            font-size: 36px;
+            background: rgba(14, 165, 233, 0.2);
+            border-radius: 12px;
+        }
+        .node.shape-large .node-body {
+            padding: 18px 30px;
+            font-size: 14px;
+        }
+
+        /* Shape: Person - base (Employee level 4 - 1.3x) */
+        .node.shape-person {
+            border-radius: 12px;
+            min-width: 130px;
+        }
+        .node.shape-person .node-header {
+            border-radius: 10px 10px 0 0;
+            padding: 10px 14px;
+        }
+        .node.shape-person .node-title {
+            font-size: 13px;
+        }
+        .node.shape-person .node-subtitle {
+            font-size: 9px;
+        }
+        .node.shape-person .node-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 20px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+        }
+        .node.shape-person .node-body {
+            padding: 10px 14px;
+            font-size: 11px;
+        }
+
+        /* Employee avatar image */
+        .node.shape-person .node-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: #252525;
+        }
+        .node[data-type="employee"] .node-avatar {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        .node[data-type="boss"] .node-avatar {
+            width: 44px;
+            height: 44px;
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .node[data-type="afdelingshoofd"] .node-avatar {
+            width: 44px;
+            height: 44px;
+            border-color: rgba(249, 115, 22, 0.4);
+        }
+
+        /* Boss - Level 2 - 2.2x */
+        .node[data-type="boss"] {
+            min-width: 200px;
+            border: 2px solid #f59e0b;
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.15);
+        }
+        .node[data-type="boss"] .node-header {
+            padding: 16px 20px;
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .node[data-type="boss"] .node-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .node[data-type="boss"] .node-subtitle {
+            font-size: 11px;
+        }
+        .node[data-type="boss"] .node-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 26px;
+        }
+        .node[data-type="boss"] .node-body {
+            padding: 14px 20px;
+            font-size: 13px;
+        }
+
+        /* Afdelingshoofd - Avatar add-on style */
+        .node[data-type="afdelingshoofd"] {
+            min-width: 70px;
+            max-width: 70px;
+            border: 3px solid #f97316;
+            border-radius: 50% 50% 12px 12px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        }
+        .node[data-type="afdelingshoofd"] .node-header {
+            padding: 8px;
+            justify-content: center;
+            border-radius: 50% 50% 0 0;
+            border-bottom: none;
+            background: transparent;
+        }
+        .node[data-type="afdelingshoofd"] .node-title {
+            display: none;
+        }
+        .node[data-type="afdelingshoofd"] .node-subtitle {
+            display: none;
+        }
+        .node[data-type="afdelingshoofd"] .node-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 28px;
+            border-radius: 50%;
+            background: rgba(249, 115, 22, 0.2);
+        }
+        .node[data-type="afdelingshoofd"] .node-body {
+            padding: 4px 6px 8px;
+            font-size: 9px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Sub-department - kleiner dan department */
+        .node[data-type="subdepartment"] {
+            min-width: 140px;
+            border: 2px solid #6366f1;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+        }
+        .node[data-type="subdepartment"] .node-header {
+            padding: 10px 14px;
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .node[data-type="subdepartment"] .node-title {
+            font-size: 13px;
+        }
+        .node[data-type="subdepartment"] .node-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+            background: rgba(99, 102, 241, 0.2);
+        }
+        .node[data-type="subdepartment"] .node-body {
+            padding: 8px 14px;
+            font-size: 11px;
+        }
+
+        /* Shape: Hexagon (Agent) - Level 4 - 1.3x */
+        .node.shape-hexagon {
+            clip-path: polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%);
+            border-radius: 0;
+            border: none;
+            padding: 2px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            min-width: 140px;
+        }
+        .node.shape-hexagon .node-inner {
+            clip-path: polygon(8% 0%, 92% 0%, 100% 50%, 92% 100%, 8% 100%, 0% 50%);
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            height: 100%;
+        }
+        .node.shape-hexagon .node-header {
+            border-radius: 0;
+            background: transparent;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            padding: 10px 18px;
+        }
+        .node.shape-hexagon .node-title {
+            font-size: 13px;
+        }
+        .node.shape-hexagon .node-subtitle {
+            font-size: 9px;
+        }
+        .node.shape-hexagon .node-body {
+            padding: 8px 18px;
+            font-size: 11px;
+        }
+        .node.shape-hexagon .node-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 6px;
+        }
+        .node.shape-hexagon.selected {
+            background: linear-gradient(135deg, #4a9eff 0%, #2563eb 100%);
+            box-shadow: 0 0 30px rgba(74, 158, 255, 0.5);
+        }
+
+        /* Agent Boss - Level 3 - 1.7x */
+        .node[data-type="agent_boss"] {
+            min-width: 170px;
+            padding: 3px;
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.2);
+        }
+        .node[data-type="agent_boss"] .node-header {
+            padding: 14px 22px;
+        }
+        .node[data-type="agent_boss"] .node-title {
+            font-size: 15px;
+        }
+        .node[data-type="agent_boss"] .node-subtitle {
+            font-size: 10px;
+        }
+        .node[data-type="agent_boss"] .node-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 24px;
+        }
+        .node[data-type="agent_boss"] .node-body {
+            padding: 12px 22px;
+            font-size: 12px;
+        }
+
+        /* Shape: Pill (Skill - Level 5, KPI - Level 4) */
+        .node.shape-pill {
+            border-radius: 50px;
+            min-width: 100px;
+        }
+        .node.shape-pill .node-header {
+            border-radius: 48px 48px 0 0;
+            padding: 8px 14px;
+            text-align: center;
+            justify-content: center;
+        }
+        .node.shape-pill .node-title {
+            font-size: 11px;
+        }
+        .node.shape-pill .node-subtitle {
+            font-size: 8px;
+        }
+        .node.shape-pill .node-body {
+            padding: 6px 14px;
+            text-align: center;
+            font-size: 10px;
+        }
+        .node.shape-pill .node-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+        }
+
+        /* KPI - Level 4 - 1.3x */
+        .node[data-type="kpi"] {
+            min-width: 120px;
+        }
+        .node[data-type="kpi"] .node-header {
+            padding: 10px 16px;
+        }
+        .node[data-type="kpi"] .node-title {
+            font-size: 12px;
+        }
+        .node[data-type="kpi"] .node-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+        }
+        .node[data-type="kpi"] .node-body {
+            padding: 8px 16px;
+            font-size: 11px;
+        }
+
+        /* Shape: Folder (Project) - Level 3 - 1.7x */
+        .node.shape-folder {
+            border-radius: 0 12px 12px 12px;
+            min-width: 180px;
+            margin-top: 14px;
+            border: 2px solid #06b6d4;
+        }
+        .node.shape-folder::before {
+            content: '';
+            position: absolute;
+            top: -14px;
+            left: 0;
+            width: 80px;
+            height: 16px;
+            background: linear-gradient(180deg, #252525 0%, #1a1a1a 100%);
+            border: 2px solid #06b6d4;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+        }
+        .node.shape-folder.selected::before {
+            border-color: #4a9eff;
+        }
+        .node.shape-folder .node-header {
+            border-radius: 0 10px 0 0;
+            padding: 14px 18px;
+        }
+        .node.shape-folder .node-title {
+            font-size: 15px;
+        }
+        .node.shape-folder .node-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 22px;
+        }
+        .node.shape-folder .node-body {
+            padding: 12px 18px;
+            font-size: 12px;
+        }
+
+        /* Shape: Document (Policy) - Level 3 - 1.7x */
+        .node.shape-document {
+            border-radius: 4px;
+            min-width: 160px;
+            background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
+            border: 2px solid #ef4444;
+        }
+        .node.shape-document::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, transparent 50%, #0a0a0a 50%);
+            border-left: 2px solid #ef4444;
+            border-bottom: 2px solid #ef4444;
+        }
+        .node.shape-document .node-header {
+            border-radius: 2px 0 0 0;
+            padding: 12px 16px;
+        }
+        .node.shape-document .node-title {
+            font-size: 14px;
+        }
+        .node.shape-document .node-subtitle {
+            font-size: 10px;
+        }
+        .node.shape-document .node-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 20px;
+        }
+        .node.shape-document .node-body {
+            padding: 10px 16px;
+            font-size: 12px;
+        }
+
+        /* Shape: Target (Jaardoel) - Level 3 - 1.7x */
+        .node.shape-target {
+            border-radius: 12px;
+            min-width: 170px;
+            border: 2px solid #22c55e;
+            background: linear-gradient(180deg, #0f1f0f 0%, #0a0a0a 100%);
+        }
+        .node.shape-target .node-header {
+            border-radius: 10px 10px 0 0;
+            background: transparent;
+            border-bottom: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 12px 16px;
+        }
+        .node.shape-target .node-title {
+            font-size: 14px;
+        }
+        .node.shape-target .node-subtitle {
+            font-size: 10px;
+        }
+        .node.shape-target .node-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 22px;
+            background: rgba(34, 197, 94, 0.15);
+            border-radius: 50%;
+        }
+        .node.shape-target .node-body {
+            padding: 10px 16px;
+            font-size: 12px;
+        }
+
+        /* Shape: Chart (Rapport) - Level 4 - 1.3x */
+        .node.shape-chart {
+            border-radius: 8px;
+            min-width: 140px;
+            border: 2px solid #3b82f6;
+            background: linear-gradient(180deg, #0f0f1f 0%, #0a0a0a 100%);
+        }
+        .node.shape-chart .node-header {
+            border-radius: 6px 6px 0 0;
+            background: transparent;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 10px 14px;
+        }
+        .node.shape-chart .node-title {
+            font-size: 12px;
+        }
+        .node.shape-chart .node-subtitle {
+            font-size: 9px;
+        }
+        .node.shape-chart .node-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            background: rgba(59, 130, 246, 0.15);
+        }
+        .node.shape-chart .node-body {
+            padding: 8px 14px;
+            font-size: 11px;
+        }
+
+        /* Shape: Default - Level 5 (smallest) - 1x */
+        .node.shape-default {
+            min-width: 110px;
+        }
+        .node.shape-default .node-header {
+            padding: 8px 12px;
+        }
+        .node.shape-default .node-title {
+            font-size: 11px;
+        }
+        .node.shape-default .node-subtitle {
+            font-size: 8px;
+        }
+        .node.shape-default .node-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+        }
+        .node.shape-default .node-body {
+            padding: 6px 12px;
+            font-size: 10px;
+        }
+
+        /* Node type specifiek: Department - Level 2 - 2.2x */
+        .node[data-type="department"] {
+            min-width: 220px;
+            border: 3px solid #4a9eff;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+            box-shadow: 0 0 30px rgba(74, 158, 255, 0.2);
+        }
+        .node[data-type="department"] .node-header {
+            padding: 18px 22px;
+            background: rgba(74, 158, 255, 0.1);
+        }
+        .node[data-type="department"] .node-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .node[data-type="department"] .node-subtitle {
+            font-size: 11px;
+        }
+        .node[data-type="department"] .node-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 28px;
+            background: rgba(74, 158, 255, 0.2);
+            color: #4a9eff;
+        }
+        .node[data-type="department"] .node-body {
+            padding: 14px 22px;
+            font-size: 13px;
+        }
+
+        /* ========== COMBINED NODE: Department + Afdelingshoofd Addon ========== */
+        .node-addon {
+            position: absolute;
+            top: -20px;
+            right: -25px;
+            width: 60px;
+            height: 70px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 3px solid #f97316;
+            border-radius: 50% 50% 12px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        .node-addon:hover {
+            border-color: #fb923c;
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+            transform: scale(1.05);
+        }
+        .node-addon.selected {
+            border-color: #4a9eff;
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3), 0 6px 20px rgba(74, 158, 255, 0.4);
+        }
+        .node-addon .addon-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(249, 115, 22, 0.4);
+            background: #252525;
+        }
+        .node-addon .addon-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(249, 115, 22, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .node-addon .addon-name {
+            font-size: 8px;
+            color: #aaa;
+            text-align: center;
+            max-width: 54px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 2px;
+        }
+        .node-addon .addon-label {
+            font-size: 7px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Empty addon state (no head assigned) */
+        .node-addon.empty {
+            border-style: dashed;
+            border-color: #444;
+            opacity: 0.6;
+        }
+        .node-addon.empty:hover {
+            border-color: #f97316;
+            opacity: 1;
+        }
+        .node-addon.empty .addon-icon {
+            background: rgba(255,255,255,0.05);
+            color: #555;
+        }
+
+        /* Node type specifiek: Task - Level 5 (smallest) */
+        .node[data-type="task"] {
+            border-left: 3px solid #eab308;
+            min-width: 120px;
+        }
+        .node[data-type="task"] .node-icon {
+            background: rgba(234, 179, 8, 0.15);
+        }
+
+        /* Skill - Level 5 (smallest) */
+        .node[data-type="skill"] {
+            min-width: 90px;
+        }
+
+        /* ========== ZOOM LEVEL VISIBILITY ========== */
+        .node.level-hidden {
+            display: none;
+        }
+
+        .connection.level-hidden {
+            display: none;
+        }
+
+        /* ERPNext link indicator */
+        .node-erpnext-link {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 10px;
+            color: #666;
+            background: #252525;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .node-erpnext-link:hover {
+            color: #4a9eff;
+            cursor: pointer;
+        }
+
+        /* ========== PORTS (connectie punten) ========== */
+        .node-ports {
+            position: relative;
+        }
+
+        .port {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 50%;
+            cursor: crosshair;
+            transition: all 0.15s;
+        }
+
+        .port:hover {
+            background: #4a9eff;
+            border-color: #4a9eff;
+            transform: scale(1.3);
+        }
+
+        .port.connected {
+            background: #4a9eff;
+            border-color: #4a9eff;
+        }
+
+        .port-input {
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .port-output {
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .port-input:hover, .port-output:hover {
+            transform: translateY(-50%) scale(1.3);
+        }
+
+        /* ========== CONTEXT MENU ========== */
+        #context-menu {
+            position: fixed;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 180px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .context-menu-item:hover {
+            background: #252525;
+            color: #fff;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #333;
+            margin: 6px 0;
+        }
+
+        .context-menu-icon {
+            width: 18px;
+            text-align: center;
+        }
+
+        .context-menu-section {
+            padding: 8px 16px 4px;
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ========== PROPERTIES PANEL ========== */
+        #properties-panel {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100vh;
+            background: #141414;
+            border-left: 1px solid #333;
+            z-index: 1500;
+            transition: right 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #properties-panel.open {
+            right: 0;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .panel-close {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .panel-close:hover {
+            color: #fff;
+        }
+
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .property-group {
+            margin-bottom: 20px;
+        }
+
+        .property-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .property-input {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .property-input:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        /* Link field dropdown */
+        .link-field-container {
+            position: relative;
+        }
+
+        .link-dropdown {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            scrollbar-width: thin;
+            scrollbar-color: #333 #1a1a1a;
+        }
+
+        .link-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .link-dropdown::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .link-dropdown::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .link-option:last-child {
+            border-bottom: none !important;
+        }
+
+        /* ========== ZOOM CONTROLS ========== */
+        #zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 4px;
+            z-index: 100;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .zoom-btn {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: #252525;
+            color: #fff;
+        }
+
+        #zoom-level {
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            color: #666;
+            min-width: 50px;
+            justify-content: center;
+        }
+
+        /* ========== TOOLBAR ========== */
+        #toolbar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .toolbar-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #888;
+            padding: 10px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-btn:hover {
+            background: #252525;
+            color: #fff;
+            border-color: #444;
+        }
+
+        /* ========== MINIMAP ========== */
+        #minimap {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 180px;
+            height: 120px;
+            background: #141414;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        #minimap-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #minimap-viewport {
+            position: absolute;
+            border: 1px solid #4a9eff;
+            background: rgba(74, 158, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .minimap-node {
+            position: absolute;
+            background: #4a9eff;
+            border-radius: 2px;
+        }
+
+        /* ========== LOADING OVERLAY ========== */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 10, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        .loading-content {
+            text-align: center;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #4a9eff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* Refresh button animation */
+        #refresh-btn.loading #refresh-icon {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        /* ERPNext source badge */
+        .erpnext-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 11px;
+            color: #666;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .erpnext-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+        .erpnext-badge.disconnected .dot {
+            background: #ef4444;
+        }
+        .erpnext-badge select {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 11px;
+            padding: 4px 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        .erpnext-badge select:hover {
+            border-color: #666;
+        }
+        .erpnext-badge select:focus {
+            border-color: #4a9eff;
+        }
+        .erpnext-badge select option {
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .erpnext-badge select option:disabled {
+            color: #666;
+        }
+
+        /* ========== MULTI-SELECTION ========== */
+        #selection-box {
+            position: absolute;
+            border: 2px dashed #4a9eff;
+            background: rgba(74, 158, 255, 0.1);
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+
+        .node.multi-selected {
+            outline: 2px solid #4a9eff;
+            outline-offset: 3px;
+        }
+
+        .node.multi-selected::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        /* Selection count badge */
+        #selection-info {
+            position: fixed;
+            bottom: 70px;
+            left: 20px;
+            background: #1a1a1a;
+            border: 1px solid #4a9eff;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            color: #4a9eff;
+            z-index: 100;
+            display: none;
+        }
+        #selection-info.visible {
+            display: block;
+        }
+
+        /* ========== ACTIVITY LOG PANEL ========== */
+        #log-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: #0d0d0d;
+            border-top: 1px solid #333;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        #log-panel.open {
+            transform: translateY(0);
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #141414;
+            border-bottom: 1px solid #252525;
+            flex-shrink: 0;
+        }
+        .log-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .log-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .log-title .pulse {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .log-filters {
+            display: flex;
+            gap: 4px;
+        }
+        .log-filter {
+            padding: 4px 10px;
+            font-size: 11px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #888;
+            cursor: pointer;
+        }
+        .log-filter:hover {
+            border-color: #444;
+            color: #fff;
+        }
+        .log-filter.active {
+            background: #252525;
+            border-color: #4a9eff;
+            color: #4a9eff;
+        }
+        .log-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .log-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            background: transparent;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #888;
+            cursor: pointer;
+        }
+        .log-btn:hover {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .log-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log-content::-webkit-scrollbar-track {
+            background: #0d0d0d;
+        }
+        .log-content::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            display: flex;
+            padding: 4px 16px;
+            gap: 12px;
+            border-left: 3px solid transparent;
+            transition: background 0.1s;
+        }
+        .log-entry:hover {
+            background: rgba(255,255,255,0.02);
+        }
+        .log-entry.type-action {
+            border-left-color: #8b5cf6;
+        }
+        .log-entry.type-task {
+            border-left-color: #eab308;
+        }
+        .log-entry.type-message {
+            border-left-color: #4a9eff;
+        }
+        .log-entry.type-error {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+        .log-entry.type-success {
+            border-left-color: #22c55e;
+        }
+        .log-entry.type-system {
+            border-left-color: #666;
+        }
+
+        .log-time {
+            color: #555;
+            font-size: 11px;
+            min-width: 70px;
+        }
+        .log-agent {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 140px;
+        }
+        .log-agent-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            background: #8b5cf6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .log-agent-name {
+            color: #a78bfa;
+            font-weight: 500;
+        }
+        .log-message {
+            color: #ccc;
+            flex: 1;
+        }
+        .log-message .highlight {
+            color: #4a9eff;
+        }
+        .log-message .code {
+            background: #1a1a1a;
+            padding: 1px 6px;
+            border-radius: 3px;
+            color: #f97316;
+        }
+        .log-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .log-tag.action { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .log-tag.task { background: rgba(234, 179, 8, 0.2); color: #fbbf24; }
+        .log-tag.message { background: rgba(74, 158, 255, 0.2); color: #4a9eff; }
+        .log-tag.error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .log-tag.success { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+
+        /* Log toggle button */
+        #log-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 210px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        #log-toggle:hover {
+            background: #252525;
+            color: #fff;
+            border-color: #444;
+        }
+        #log-toggle .badge {
+            background: #8b5cf6;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+        #log-toggle.has-new .badge {
+            animation: pulse 1s infinite;
+        }
+
+        /* Notification toasts */
+        .notification {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            font-size: 13px;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .notification.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification.success {
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+            border-color: #10b981;
+        }
+        .notification.error {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            border-color: #ef4444;
+        }
+        .notification.info {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+            border-color: #3b82f6;
+        }
+
+        /* Live connection indicator */
+        #erpnext-badge.live::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <button class="toolbar-btn" onclick="loadFromERPNext()" id="refresh-btn">
+            <span id="refresh-icon">🔄</span> <span id="refresh-text">Refresh</span>
+        </button>
+        <button class="toolbar-btn" onclick="addNodeAtCenter('department')">
+            <span>+</span> Add Node
+        </button>
+        <button class="toolbar-btn" id="line-style-btn" onclick="toggleLineStyle()">
+            <span id="line-style-icon">⌇</span> <span id="line-style-text">Curved</span>
+        </button>
+        <button class="toolbar-btn" id="visibility-btn" onclick="toggleAutoHide()">
+            <span id="visibility-icon">👁</span> <span id="visibility-text">Auto-hide</span>
+        </button>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading from ERPNext...</div>
+        </div>
+    </div>
+
+    <!-- Canvas -->
+    <div id="canvas-container">
+        <div id="canvas">
+            <div id="grid"></div>
+            <svg id="connections">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#4a9eff" />
+                    </marker>
+                </defs>
+            </svg>
+            <!-- Selection box -->
+            <div id="selection-box"></div>
+            <!-- Nodes worden hier toegevoegd -->
+        </div>
+    </div>
+
+    <!-- Selection info badge -->
+    <div id="selection-info">
+        <span id="selection-count">0</span> nodes selected
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu">
+        <div class="context-menu-section">Organisation</div>
+        <div class="context-menu-item" data-action="add-company">
+            <span class="context-menu-icon">🏢</span> Company
+        </div>
+        <div class="context-menu-item" data-action="add-department">
+            <span class="context-menu-icon">◆</span> Department
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-section">People</div>
+        <div class="context-menu-item" data-action="add-boss">
+            <span class="context-menu-icon">👔</span> Boss / Director
+        </div>
+        <div class="context-menu-item" data-action="add-afdelingshoofd">
+            <span class="context-menu-icon">👤</span> Afdelingshoofd
+        </div>
+        <div class="context-menu-item" data-action="add-employee">
+            <span class="context-menu-icon">●</span> Employee
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-section">AI Agents</div>
+        <div class="context-menu-item" data-action="add-agent">
+            <span class="context-menu-icon">🤖</span> Agent
+        </div>
+        <div class="context-menu-item" data-action="add-agent_boss">
+            <span class="context-menu-icon">🧠</span> Agent Boss
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-section">Work</div>
+        <div class="context-menu-item" data-action="add-project">
+            <span class="context-menu-icon">📁</span> Project
+        </div>
+        <div class="context-menu-item" data-action="add-task">
+            <span class="context-menu-icon">☑</span> Task
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-section">Goals & Reports</div>
+        <div class="context-menu-item" data-action="add-jaardoel">
+            <span class="context-menu-icon">🎯</span> Jaardoel
+        </div>
+        <div class="context-menu-item" data-action="add-rapport">
+            <span class="context-menu-icon">📊</span> Rapport
+        </div>
+        <div class="context-menu-item" data-action="add-kpi">
+            <span class="context-menu-icon">📈</span> KPI
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-section">Other</div>
+        <div class="context-menu-item" data-action="add-skill">
+            <span class="context-menu-icon">⚡</span> Skill
+        </div>
+        <div class="context-menu-item" data-action="add-policy">
+            <span class="context-menu-icon">📋</span> Policy
+        </div>
+    </div>
+
+    <!-- Properties Panel -->
+    <div id="properties-panel">
+        <div class="panel-header">
+            <span class="panel-title">Properties</span>
+            <button class="panel-close" onclick="closePropertiesPanel()">&times;</button>
+        </div>
+        <div class="panel-content" id="properties-content">
+            <!-- Dynamisch gevuld -->
+        </div>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div id="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()">−</button>
+        <span id="zoom-level">100%</span>
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+        <button class="zoom-btn" onclick="resetView()">⌂</button>
+    </div>
+
+    <!-- Minimap -->
+    <div id="minimap">
+        <div id="minimap-content">
+            <div id="minimap-viewport"></div>
+        </div>
+    </div>
+
+    <!-- ERPNext connection badge with instance selector -->
+    <div class="erpnext-badge" id="erpnext-badge">
+        <span class="dot"></span>
+        <select id="instance-selector" onchange="switchInstance(this.value)" title="Selecteer ERPNext instance">
+            <option value="impertire">InstanceA</option>
+            <option value="3bm">InstanceB</option>
+            <option value="domera" disabled>InstanceC (geen credentials)</option>
+        </select>
+        <span id="erpnext-status">Connected to InstanceA</span>
+    </div>
+
+    <!-- Log toggle button -->
+    <button id="log-toggle" onclick="toggleLogPanel()">
+        <span>📋</span> Activity Log
+        <span class="badge" id="log-badge">0</span>
+    </button>
+
+    <!-- Activity Log Panel -->
+    <div id="log-panel">
+        <div class="log-header">
+            <div class="log-header-left">
+                <div class="log-title">
+                    <span class="pulse"></span>
+                    Agent Activity Log
+                </div>
+                <div class="log-filters">
+                    <button class="log-filter active" data-filter="all" onclick="setLogFilter('all')">All</button>
+                    <button class="log-filter" data-filter="action" onclick="setLogFilter('action')">Actions</button>
+                    <button class="log-filter" data-filter="task" onclick="setLogFilter('task')">Tasks</button>
+                    <button class="log-filter" data-filter="message" onclick="setLogFilter('message')">Messages</button>
+                    <button class="log-filter" data-filter="error" onclick="setLogFilter('error')">Errors</button>
+                </div>
+            </div>
+            <div class="log-actions">
+                <button class="log-btn" onclick="clearLog()">Clear</button>
+                <button class="log-btn" onclick="toggleLogPanel()">✕ Close</button>
+            </div>
+        </div>
+        <div class="log-content" id="log-content">
+            <!-- Log entries worden hier toegevoegd -->
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATIE ====================
+        const CONFIG = {
+            minZoom: 0.2,
+            maxZoom: 3,
+            zoomStep: 0.15,
+            gridSize: 30,
+            snapToGrid: false
+        };
+
+        // ==================== STATE ====================
+        const state = {
+            zoom: 1,
+            panX: 0,
+            panY: 0,
+            nodes: new Map(),
+            connections: [],
+            selectedNodes: new Set(),  // Multi-selection support
+            draggingNodes: false,      // Are we dragging selected nodes?
+            dragOffsets: new Map(),    // Offset per node for multi-drag
+            isPanning: false,
+            lastMouse: { x: 0, y: 0 },
+            connectingFrom: null,      // Port waarvan we een connectie trekken
+            nodeIdCounter: 0,
+            lineStyle: 'curved',       // 'curved' of 'angled'
+            autoHideNodes: true,       // Automatisch nodes verbergen bij uitzoomen
+            isSelecting: false,        // Selection box active?
+            selectionStart: { x: 0, y: 0 },
+            selectionEnd: { x: 0, y: 0 }
+        };
+
+        // ==================== DOM ELEMENTEN ====================
+        const canvasContainer = document.getElementById('canvas-container');
+        const canvas = document.getElementById('canvas');
+        const grid = document.getElementById('grid');
+        const connectionsEl = document.getElementById('connections');
+        const contextMenu = document.getElementById('context-menu');
+        const propertiesPanel = document.getElementById('properties-panel');
+        const propertiesContent = document.getElementById('properties-content');
+        const zoomLevelEl = document.getElementById('zoom-level');
+
+        // ==================== NODE TYPES ====================
+        // Elk type is gekoppeld aan een ERPNext doctype
+        const nodeTypes = {
+            company: {
+                title: 'Company',
+                color: '#0ea5e9',
+                icon: '🏢',
+                shape: 'large',
+                level: 1,
+                doctype: 'Company',
+                defaultData: {
+                    name: 'Company Name',
+                    abbr: '',
+                    default_currency: 'EUR',
+                    country: 'Netherlands'
+                },
+                fieldGroups: [
+                    {
+                        label: 'Basis',
+                        fields: [
+                            { key: 'name', label: 'Company Name', type: 'text' },
+                            { key: 'abbr', label: 'Abbreviation', type: 'text', readonly: true },
+                            { key: 'parent_company', label: 'Parent Company', type: 'link', doctype: 'Company' }
+                        ]
+                    },
+                    {
+                        label: 'Locatie',
+                        fields: [
+                            { key: 'country', label: 'Country', type: 'text' },
+                            { key: 'default_currency', label: 'Currency', type: 'text' },
+                            { key: 'tax_id', label: 'Tax ID', type: 'text' }
+                        ]
+                    }
+                ],
+                canConnect: ['department', 'boss', 'policy']
+            },
+            department: {
+                title: 'Department',
+                color: '#4a9eff',
+                icon: '◆',
+                shape: 'default',
+                level: 2,
+                doctype: 'Department',
+                defaultData: {
+                    name: 'Department',
+                    company: '',
+                    parent_department: '',
+                    is_group: 0
+                },
+                fieldGroups: [
+                    {
+                        label: 'Basis',
+                        fields: [
+                            { key: 'name', label: 'Department Name', type: 'text' },
+                            { key: 'department_name', label: 'Display Name', type: 'text' },
+                            { key: 'company', label: 'Company', type: 'link', doctype: 'Company' }
+                        ]
+                    },
+                    {
+                        label: 'Hiërarchie',
+                        fields: [
+                            { key: 'parent_department', label: 'Parent Department', type: 'link', doctype: 'Department' },
+                            { key: 'is_group', label: 'Has Sub-departments', type: 'check' }
+                        ]
+                    },
+                    {
+                        label: 'Status',
+                        fields: [
+                            { key: 'disabled', label: 'Disabled', type: 'check' }
+                        ]
+                    }
+                ],
+                canConnect: ['department', 'afdelingshoofd', 'employee', 'agent', 'project', 'policy']
+            },
+            boss: {
+                title: 'Boss',
+                color: '#f59e0b',
+                icon: '👔',
+                shape: 'person',
+                level: 2,
+                doctype: 'Employee',
+                defaultData: {
+                    name: 'Director Name',
+                    employee_id: '',
+                    designation: 'Director',
+                    status: 'Active'
+                },
+                fieldGroups: [
+                    {
+                        label: 'Persoonlijk',
+                        fields: [
+                            { key: 'employee_id', label: 'Employee ID', type: 'text', readonly: true },
+                            { key: 'name', label: 'Full Name', type: 'text' },
+                            { key: 'user_id', label: 'Email', type: 'email' }
+                        ]
+                    },
+                    {
+                        label: 'Positie',
+                        fields: [
+                            { key: 'designation', label: 'Designation', type: 'text' },
+                            { key: 'company', label: 'Company', type: 'link', doctype: 'Company' },
+                            { key: 'department', label: 'Department', type: 'link', doctype: 'Department' },
+                            { key: 'reports_to', label: 'Reports To', type: 'link', doctype: 'Employee' }
+                        ]
+                    },
+                    {
+                        label: 'Status',
+                        fields: [
+                            { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'] },
+                            { key: 'date_of_joining', label: 'Date of Joining', type: 'date' }
+                        ]
+                    }
+                ],
+                canConnect: ['department', 'afdelingshoofd', 'agent_boss', 'policy']
+            },
+            subdepartment: {
+                title: 'Sub-department',
+                color: '#6366f1',
+                icon: '◇',
+                shape: 'default',
+                level: 3,
+                doctype: 'Department',
+                defaultData: {
+                    name: 'Sub-department',
+                    parent_department: ''
+                },
+                fields: [
+                    { key: 'name', label: 'Name', type: 'text' },
+                    { key: 'parent_department', label: 'Parent', type: 'link', doctype: 'Department' }
+                ],
+                canConnect: ['department', 'employee', 'agent']
+            },
+            afdelingshoofd: {
+                title: 'Afdelingshoofd',
+                color: '#f97316',
+                icon: '👤',
+                shape: 'person',
+                level: 2,
+                doctype: 'Employee',
+                defaultData: {
+                    name: 'Head',
+                    employee_id: '',
+                    department: '',
+                    reports_to: ''
+                },
+                fields: [
+                    { key: 'name', label: 'Name', type: 'text' },
+                    { key: 'employee_id', label: 'Employee ID', type: 'text', readonly: true },
+                    { key: 'department', label: 'Department', type: 'link', doctype: 'Department' },
+                    { key: 'reports_to', label: 'Reports To', type: 'link', doctype: 'Employee' }
+                ],
+                canConnect: ['employee', 'agent', 'project', 'task']
+            },
+            employee: {
+                title: 'Employee',
+                color: '#10b981',
+                icon: '●',
+                shape: 'person',
+                level: 4,
+                doctype: 'Employee',
+                defaultData: {
+                    name: 'Employee Name',
+                    employee_id: '',
+                    designation: '',
+                    department: '',
+                    status: 'Active'
+                },
+                fieldGroups: [
+                    {
+                        label: 'Persoonlijk',
+                        fields: [
+                            { key: 'employee_id', label: 'Employee ID', type: 'text', readonly: true },
+                            { key: 'name', label: 'Full Name', type: 'text' },
+                            { key: 'first_name', label: 'First Name', type: 'text' },
+                            { key: 'last_name', label: 'Last Name', type: 'text' },
+                            { key: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
+                            { key: 'date_of_birth', label: 'Date of Birth', type: 'date' }
+                        ]
+                    },
+                    {
+                        label: 'Werk',
+                        fields: [
+                            { key: 'company', label: 'Company', type: 'link', doctype: 'Company' },
+                            { key: 'department', label: 'Department', type: 'link', doctype: 'Department' },
+                            { key: 'designation', label: 'Designation', type: 'text' },
+                            { key: 'reports_to', label: 'Reports To', type: 'link', doctype: 'Employee' },
+                            { key: 'employment_type', label: 'Employment Type', type: 'select', options: ['Full-time', 'Part-time', 'Contract', 'Intern'] }
+                        ]
+                    },
+                    {
+                        label: 'Status',
+                        fields: [
+                            { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'] },
+                            { key: 'date_of_joining', label: 'Date of Joining', type: 'date' },
+                            { key: 'user_id', label: 'User Email', type: 'email' }
+                        ]
+                    }
+                ],
+                canConnect: ['task', 'skill', 'agent']
+            },
+            agent: {
+                title: 'Agent',
+                color: '#8b5cf6',
+                icon: '🤖',
+                shape: 'hexagon',
+                level: 4,
+                doctype: 'Employee',
+                defaultData: {
+                    name: 'Agent Name',
+                    employee_id: '',
+                    is_agent: 1,
+                    status: 'Active',
+                    model: 'claude-sonnet'
+                },
+                fieldGroups: [
+                    {
+                        label: 'Agent Info',
+                        fields: [
+                            { key: 'employee_id', label: 'Agent ID', type: 'text', readonly: true },
+                            { key: 'name', label: 'Agent Name', type: 'text' },
+                            { key: 'designation', label: 'Role', type: 'text' }
+                        ]
+                    },
+                    {
+                        label: 'Organisatie',
+                        fields: [
+                            { key: 'department', label: 'Department', type: 'link', doctype: 'Department' },
+                            { key: 'reports_to', label: 'Reports To', type: 'link', doctype: 'Employee' }
+                        ]
+                    },
+                    {
+                        label: 'AI Configuratie',
+                        fields: [
+                            { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Idle', 'Busy', 'Offline'] },
+                            { key: 'model', label: 'AI Model', type: 'select', options: ['claude-opus', 'claude-sonnet', 'claude-haiku'] },
+                            { key: 'is_agent', label: 'Is AI Agent', type: 'check', readonly: true }
+                        ]
+                    }
+                ],
+                canConnect: ['task', 'skill', 'employee', 'project']
+            },
+            agent_boss: {
+                title: 'Agent Boss',
+                color: '#a855f7',
+                icon: '🧠',
+                shape: 'hexagon',
+                level: 3,
+                doctype: 'Employee',
+                defaultData: {
+                    name: 'Agent Boss',
+                    employee_id: '',
+                    is_agent: 1,
+                    is_supervisor: 1,
+                    status: 'Active',
+                    model: 'claude-opus'
+                },
+                fields: [
+                    { key: 'name', label: 'Agent Name', type: 'text' },
+                    { key: 'employee_id', label: 'Employee ID', type: 'text', readonly: true },
+                    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Idle', 'Busy', 'Offline'] },
+                    { key: 'model', label: 'AI Model', type: 'select', options: ['claude-opus', 'claude-sonnet'] },
+                    { key: 'managed_agents', label: 'Manages', type: 'number' }
+                ],
+                canConnect: ['agent', 'boss', 'task', 'project']
+            },
+            project: {
+                title: 'Project',
+                color: '#06b6d4',
+                icon: '📁',
+                shape: 'folder',
+                level: 3,
+                doctype: 'Project',
+                defaultData: {
+                    name: 'Project Name',
+                    project_id: '',
+                    status: 'Open',
+                    percent_complete: 0,
+                    priority: 'Medium'
+                },
+                fieldGroups: [
+                    {
+                        label: 'Basis',
+                        fields: [
+                            { key: 'project_id', label: 'Project ID', type: 'text', readonly: true },
+                            { key: 'name', label: 'Project Name', type: 'text' },
+                            { key: 'company', label: 'Company', type: 'link', doctype: 'Company' },
+                            { key: 'department', label: 'Department', type: 'link', doctype: 'Department' }
+                        ]
+                    },
+                    {
+                        label: 'Status & Planning',
+                        fields: [
+                            { key: 'status', label: 'Status', type: 'select', options: ['Open', 'Completed', 'Cancelled', 'On Hold'] },
+                            { key: 'is_active', label: 'Active', type: 'select', options: ['Yes', 'No'] },
+                            { key: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High'] },
+                            { key: 'percent_complete', label: 'Progress %', type: 'number' }
+                        ]
+                    },
+                    {
+                        label: 'Planning',
+                        fields: [
+                            { key: 'expected_start_date', label: 'Expected Start', type: 'date' },
+                            { key: 'expected_end_date', label: 'Expected End', type: 'date' },
+                            { key: 'actual_start_date', label: 'Actual Start', type: 'date' },
+                            { key: 'actual_end_date', label: 'Actual End', type: 'date' }
+                        ]
+                    },
+                    {
+                        label: 'Financieel',
+                        fields: [
+                            { key: 'estimated_costing', label: 'Estimated Cost', type: 'currency' },
+                            { key: 'total_costing_amount', label: 'Total Cost', type: 'currency', readonly: true },
+                            { key: 'total_billable_amount', label: 'Billable Amount', type: 'currency', readonly: true },
+                            { key: 'total_billed_amount', label: 'Billed Amount', type: 'currency', readonly: true }
+                        ]
+                    }
+                ],
+                canConnect: ['task', 'employee', 'agent']
+            },
+            task: {
+                title: 'Task',
+                color: '#eab308',
+                icon: '☑',
+                shape: 'default',
+                level: 5,
+                doctype: 'AA Task',
+                defaultData: {
+                    name: 'Task Name',
+                    task_id: '',
+                    status: 'Open',
+                    priority: 'Medium',
+                    assigned_to: '',
+                    project: ''
+                },
+                fields: [
+                    { key: 'name', label: 'Task Name', type: 'text' },
+                    { key: 'task_id', label: 'Task ID', type: 'text', readonly: true },
+                    { key: 'status', label: 'Status', type: 'select', options: ['Open', 'Working', 'Pending Review', 'Completed', 'Cancelled'] },
+                    { key: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] },
+                    { key: 'assigned_to', label: 'Assigned To', type: 'link', doctype: 'Employee' },
+                    { key: 'project', label: 'Project', type: 'link', doctype: 'Project' }
+                ],
+                canConnect: ['employee', 'agent', 'task']
+            },
+            skill: {
+                title: 'Skill',
+                color: '#ec4899',
+                icon: '⚡',
+                shape: 'pill',
+                level: 5,
+                doctype: 'Skill',
+                defaultData: {
+                    name: 'Skill Name',
+                    category: ''
+                },
+                fields: [
+                    { key: 'name', label: 'Skill Name', type: 'text' },
+                    { key: 'category', label: 'Category', type: 'select', options: ['Technical', 'Soft Skill', 'Domain', 'Tool'] }
+                ],
+                canConnect: ['employee', 'agent']
+            },
+            policy: {
+                title: 'Policy',
+                color: '#ef4444',
+                icon: '📋',
+                shape: 'document',
+                level: 3,
+                doctype: 'AA Policy',
+                defaultData: {
+                    name: 'Policy Name',
+                    type: 'Guideline',
+                    applies_to: '',
+                    status: 'Active'
+                },
+                fields: [
+                    { key: 'name', label: 'Policy Name', type: 'text' },
+                    { key: 'type', label: 'Type', type: 'select', options: ['Guideline', 'Procedure', 'Rule', 'SLA'] },
+                    { key: 'applies_to', label: 'Applies To', type: 'text' },
+                    { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Active', 'Archived'] }
+                ],
+                canConnect: ['company', 'department', 'employee', 'agent']
+            },
+            jaardoel: {
+                title: 'Jaardoel',
+                color: '#22c55e',
+                icon: '🎯',
+                shape: 'target',
+                level: 3,
+                doctype: 'AA Goal',
+                defaultData: {
+                    name: 'Jaardoel',
+                    year: new Date().getFullYear(),
+                    department: '',
+                    target: '',
+                    progress: 0,
+                    status: 'Active'
+                },
+                fields: [
+                    { key: 'name', label: 'Goal Name', type: 'text' },
+                    { key: 'year', label: 'Year', type: 'number' },
+                    { key: 'department', label: 'Department', type: 'link', doctype: 'Department' },
+                    { key: 'target', label: 'Target', type: 'text' },
+                    { key: 'progress', label: 'Progress %', type: 'number' },
+                    { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Achieved', 'Missed', 'Cancelled'] }
+                ],
+                canConnect: ['department', 'kpi']
+            },
+            rapport: {
+                title: 'Rapport',
+                color: '#3b82f6',
+                icon: '📊',
+                shape: 'chart',
+                level: 4,
+                doctype: 'AA Report',
+                defaultData: {
+                    name: 'Report Name',
+                    type: 'Monthly',
+                    department: '',
+                    period: '',
+                    status: 'Draft'
+                },
+                fields: [
+                    { key: 'name', label: 'Report Name', type: 'text' },
+                    { key: 'type', label: 'Type', type: 'select', options: ['Weekly', 'Monthly', 'Quarterly', 'Annual', 'Ad-hoc'] },
+                    { key: 'department', label: 'Department', type: 'link', doctype: 'Department' },
+                    { key: 'period', label: 'Period', type: 'text' },
+                    { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'In Review', 'Published', 'Archived'] }
+                ],
+                canConnect: ['department', 'jaardoel']
+            },
+            kpi: {
+                title: 'KPI',
+                color: '#14b8a6',
+                icon: '📈',
+                shape: 'pill',
+                level: 4,
+                doctype: 'AA KPI',
+                defaultData: {
+                    name: 'KPI Name',
+                    target_value: 0,
+                    current_value: 0,
+                    unit: '%'
+                },
+                fields: [
+                    { key: 'name', label: 'KPI Name', type: 'text' },
+                    { key: 'target_value', label: 'Target', type: 'number' },
+                    { key: 'current_value', label: 'Current', type: 'number' },
+                    { key: 'unit', label: 'Unit', type: 'text' }
+                ],
+                canConnect: ['jaardoel', 'department']
+            }
+        };
+
+        // ==================== ERPNEXT INSTANCES ====================
+        const ERPNEXT_INSTANCES = {
+            impertire: {
+                name: 'InstanceA',
+                url: 'https://example.erpnext.com',
+                apiKey: 'REMOVED_API_KEY',
+                apiSecret: 'REMOVED_API_SECRET',
+                company: 'Example Company A',
+                color: '#8b5cf6'  // Purple
+            },
+            '3bm': {
+                name: 'InstanceB',
+                url: 'https://example2.erpnext.com',
+                apiKey: 'REMOVED_API_KEY',
+                apiSecret: 'REMOVED_API_SECRET',
+                company: 'InstanceB V.O.F.',
+                color: '#059669'  // Green
+            },
+            domera: {
+                name: 'InstanceC',
+                url: 'https://example3.erpnext.com',  // TODO: Verify URL
+                apiKey: '',  // TODO: Add API key
+                apiSecret: '',  // TODO: Add API secret
+                company: 'InstanceC',
+                color: '#dc2626'  // Red
+            }
+        };
+
+        // Current active instance
+        let currentInstance = 'impertire';
+
+        // ==================== ERPNEXT API CONFIG ====================
+        const ERPNEXT_API = {
+            baseUrl: 'http://localhost:8002',  // Bridge API
+            directUrl: ERPNEXT_INSTANCES[currentInstance].url,
+            apiKey: ERPNEXT_INSTANCES[currentInstance].apiKey,
+            apiSecret: ERPNEXT_INSTANCES[currentInstance].apiSecret,
+            company: ERPNEXT_INSTANCES[currentInstance].company,
+            // Cache for doctype metadata
+            doctypeCache: new Map(),
+            // Cache for link field options
+            linkOptionsCache: new Map()
+        };
+
+        // Switch ERPNext instance
+        function switchInstance(instanceKey) {
+            if (!ERPNEXT_INSTANCES[instanceKey]) {
+                console.error('Unknown instance:', instanceKey);
+                return;
+            }
+
+            const instance = ERPNEXT_INSTANCES[instanceKey];
+
+            // Check if instance has credentials
+            if (!instance.apiKey || !instance.apiSecret) {
+                alert(`${instance.name} heeft nog geen API credentials geconfigureerd.`);
+                return;
+            }
+
+            currentInstance = instanceKey;
+            ERPNEXT_API.directUrl = instance.url;
+            ERPNEXT_API.apiKey = instance.apiKey;
+            ERPNEXT_API.apiSecret = instance.apiSecret;
+            ERPNEXT_API.company = instance.company;
+
+            // Clear caches
+            ERPNEXT_API.doctypeCache.clear();
+            ERPNEXT_API.linkOptionsCache.clear();
+
+            // Update UI
+            updateInstanceSelector();
+
+            // Update bridge config and reload
+            updateBridgeConfig(instance).then(() => {
+                loadFromERPNext();
+            });
+
+            console.log('Switched to instance:', instance.name);
+        }
+
+        // Update bridge configuration
+        async function updateBridgeConfig(instance) {
+            try {
+                // For now, we'll reload data directly - bridge config update would require backend changes
+                // The frontend will pass the company parameter to filter data
+                console.log('Using instance:', instance.name, 'Company:', instance.company);
+            } catch (error) {
+                console.error('Failed to update bridge config:', error);
+            }
+        }
+
+        // Update instance selector UI
+        function updateInstanceSelector() {
+            const selector = document.getElementById('instance-selector');
+            const badge = document.getElementById('erpnext-badge');
+            if (selector) {
+                selector.value = currentInstance;
+            }
+            if (badge) {
+                const instance = ERPNEXT_INSTANCES[currentInstance];
+                badge.style.borderColor = instance.color;
+                document.getElementById('erpnext-status').textContent = `Connected to ${instance.name}`;
+            }
+        }
+
+        // Track dirty state for save operations
+        const dirtyNodes = new Set();
+        let autoSaveTimer = null;
+
+        // Track which connections come from database (non-deletable)
+        const databaseConnections = new Set();
+
+        // Clear all nodes and connections
+        function clearCanvas() {
+            state.nodes.forEach((node, id) => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            });
+            state.nodes.clear();
+            state.connections = [];
+            state.nodeIdCounter = 0;
+            drawConnections();
+            updateMinimap();
+        }
+
+        // Load data from ERPNext
+        async function loadFromERPNext() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const badge = document.getElementById('erpnext-badge');
+
+            try {
+                refreshBtn.classList.add('loading');
+                loadingOverlay.style.display = 'flex';
+
+                // Clear existing nodes
+                clearCanvas();
+
+                // For the mockup, we'll use embedded data that mirrors ERPNext
+                // In production, these would be actual fetch() calls to the API
+                const erpData = await fetchERPNextData();
+
+                // Build the organization chart from ERPNext data
+                buildOrganizationFromData(erpData);
+
+                badge.classList.remove('disconnected');
+                document.getElementById('erpnext-status').textContent = 'Connected to InstanceA';
+
+            } catch (error) {
+                console.error('Failed to load from ERPNext:', error);
+                badge.classList.add('disconnected');
+                document.getElementById('erpnext-status').textContent = 'Connection failed';
+            } finally {
+                refreshBtn.classList.remove('loading');
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // ==================== ERPNEXT DIRECT API ====================
+
+        // Make authenticated request to ERPNext
+        async function erpnextFetch(endpoint, options = {}) {
+            const url = `${ERPNEXT_API.baseUrl}${endpoint}`;
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            // Add authentication if configured
+            if (ERPNEXT_API.apiKey && ERPNEXT_API.apiSecret) {
+                headers['Authorization'] = `token ${ERPNEXT_API.apiKey}:${ERPNEXT_API.apiSecret}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers,
+                credentials: 'include' // For session-based auth
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ message: response.statusText }));
+                throw new Error(error.message || error.exc || `HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        // Get list of documents
+        async function erpnextGetList(doctype, options = {}) {
+            const params = new URLSearchParams();
+            if (options.fields) params.set('fields', JSON.stringify(options.fields));
+            if (options.filters) params.set('filters', JSON.stringify(options.filters));
+            if (options.limit) params.set('limit_page_length', options.limit);
+            if (options.orderBy) params.set('order_by', options.orderBy);
+
+            const result = await erpnextFetch(`/api/resource/${doctype}?${params}`);
+            return result.data || [];
+        }
+
+        // Get single document
+        async function erpnextGetDoc(doctype, name) {
+            const result = await erpnextFetch(`/api/resource/${doctype}/${encodeURIComponent(name)}`);
+            return result.data;
+        }
+
+        // Create document
+        async function erpnextCreateDoc(doctype, data) {
+            const result = await erpnextFetch(`/api/resource/${doctype}`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            return result.data;
+        }
+
+        // Update document
+        async function erpnextUpdateDoc(doctype, name, data) {
+            const result = await erpnextFetch(`/api/resource/${doctype}/${encodeURIComponent(name)}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+            return result.data;
+        }
+
+        // Delete document
+        async function erpnextDeleteDoc(doctype, name) {
+            await erpnextFetch(`/api/resource/${doctype}/${encodeURIComponent(name)}`, {
+                method: 'DELETE'
+            });
+        }
+
+        // Get doctype metadata (fields, etc.)
+        async function erpnextGetMeta(doctype) {
+            if (ERPNEXT_API.doctypeCache.has(doctype)) {
+                return ERPNEXT_API.doctypeCache.get(doctype);
+            }
+
+            try {
+                const result = await erpnextFetch(`/api/method/frappe.client.get_meta`, {
+                    method: 'POST',
+                    body: JSON.stringify({ doctype })
+                });
+                const meta = result.message || result;
+                ERPNEXT_API.doctypeCache.set(doctype, meta);
+                return meta;
+            } catch (error) {
+                console.error(`Failed to get meta for ${doctype}:`, error);
+                return null;
+            }
+        }
+
+        // Search for link field options using Frappe's search_link method
+        async function erpnextSearchLink(doctype, txt = '', filters = {}) {
+            // Only cache empty search results (initial load)
+            const cacheKey = `${doctype}::${JSON.stringify(filters)}`;
+            if (txt === '' && ERPNEXT_API.linkOptionsCache.has(cacheKey)) {
+                return ERPNEXT_API.linkOptionsCache.get(cacheKey);
+            }
+
+            try {
+                // Use search_link for better fuzzy search
+                const result = await erpnextFetch(`/api/method/frappe.desk.search.search_link`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        doctype,
+                        txt: txt || '',
+                        filters: JSON.stringify(filters),
+                        page_length: 50
+                    })
+                });
+
+                // search_link returns results with 'value' and 'description'
+                const results = result.message || result.results || [];
+                const options = results.map(r => ({
+                    value: r.value,
+                    description: r.description || ''
+                }));
+
+                // Cache empty searches
+                if (txt === '') {
+                    ERPNEXT_API.linkOptionsCache.set(cacheKey, options);
+                }
+
+                return options;
+            } catch (error) {
+                console.error(`Failed to search ${doctype}:`, error);
+                // Fallback to simple get_list
+                try {
+                    const result = await erpnextFetch(`/api/method/frappe.client.get_list`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            doctype,
+                            filters: txt ? { name: ['like', `%${txt}%`], ...filters } : filters,
+                            fields: ['name'],
+                            limit_page_length: 50
+                        })
+                    });
+                    return (result.message || []).map(d => ({ value: d.name, description: '' }));
+                } catch (e) {
+                    return [];
+                }
+            }
+        }
+
+        // ==================== FETCH ORG DATA ====================
+
+        async function fetchERPNextData() {
+            const company = ERPNEXT_API.company;
+
+            // Use Bridge API endpoint for canvas data (single request, no CORS issues)
+            try {
+                const url = `${ERPNEXT_API.baseUrl}/api/organization/canvas-data?company=${encodeURIComponent(company)}&instance=${currentInstance}`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Bridge API error: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log(`Loaded from Bridge API (${currentInstance}):`, data);
+                return data;
+            } catch (bridgeError) {
+                console.warn('Bridge API failed, falling back to direct ERPNext:', bridgeError);
+
+                // Fallback to direct ERPNext API
+                const [companyDoc, departments, employees, projects] = await Promise.all([
+                    erpnextGetDoc('Company', company),
+                    erpnextGetList('Department', {
+                        filters: { company, disabled: 0 },
+                        fields: ['name', 'department_name', 'parent_department', 'is_group'],
+                        limit: 500
+                    }),
+                    erpnextGetList('Employee', {
+                        filters: { company, status: 'Active' },
+                        fields: ['*'],
+                        limit: 500
+                    }),
+                    erpnextGetList('Project', {
+                        filters: { company },
+                        fields: ['*'],
+                        limit: 200
+                    })
+                ]);
+
+                return {
+                    company: companyDoc,
+                    departments,
+                    employees,
+                    projects
+                };
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const badge = document.getElementById('erpnext-badge');
+            const statusText = document.getElementById('erpnext-status');
+            if (badge && statusText) {
+                if (connected) {
+                    badge.classList.remove('disconnected');
+                    statusText.textContent = 'Connected to ERPNext';
+                } else {
+                    badge.classList.add('disconnected');
+                    statusText.textContent = 'Disconnected';
+                }
+            }
+        }
+
+        // ==================== ERPNEXT CRUD OPERATIONS ====================
+
+        async function saveNodeToERPNext(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData) return;
+
+            const nodeType = nodeTypes[nodeData.type];
+            const doctype = nodeType?.doctype;
+            if (!doctype || doctype === 'Company') return;
+
+            const erpnextId = nodeData.data._erpnext_id;
+
+            try {
+                let result;
+                if (erpnextId && !erpnextId.startsWith('NEW-')) {
+                    // UPDATE existing document
+                    result = await erpnextUpdateDoc(doctype, erpnextId, nodeData.data);
+                } else {
+                    // CREATE new document
+                    result = await erpnextCreateDoc(doctype, nodeData.data);
+                    nodeData.data._erpnext_id = result.name;
+                }
+
+                dirtyNodes.delete(nodeId);
+                showNotification('Saved to ERPNext', 'success');
+
+                // Refresh connections in case Link fields changed
+                await createAutoConnections();
+
+                return result;
+
+            } catch (error) {
+                console.error('Save error:', error);
+                showNotification(`Save failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function deleteNodeFromERPNext(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData) return;
+
+            const nodeType = nodeTypes[nodeData.type];
+            const doctype = nodeType?.doctype;
+            if (!doctype) return;
+
+            const erpnextId = nodeData.data._erpnext_id;
+            if (!erpnextId || erpnextId.startsWith('NEW-')) {
+                return; // Never saved
+            }
+
+            try {
+                // Soft delete for Employee (set status to Left)
+                if (doctype === 'Employee') {
+                    await erpnextUpdateDoc(doctype, erpnextId, { status: 'Left' });
+                } else if (doctype === 'Project') {
+                    await erpnextUpdateDoc(doctype, erpnextId, { status: 'Cancelled' });
+                } else {
+                    await erpnextDeleteDoc(doctype, erpnextId);
+                }
+                showNotification('Deleted from ERPNext', 'success');
+            } catch (error) {
+                console.error('Delete error:', error);
+                showNotification(`Delete failed: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== AUTO CONNECTIONS FROM LINK FIELDS ====================
+
+        // Define which Link fields create visual connections
+        const linkFieldConnectors = {
+            'Employee': ['reports_to', 'department'],
+            'Project': ['custom_project_manager', 'department'],
+            'Department': ['parent_department']
+        };
+
+        async function createAutoConnections() {
+            // Clear old database connections
+            databaseConnections.clear();
+
+            // Build map of ERPNext IDs to node IDs
+            const erpnextToNodeId = new Map();
+            state.nodes.forEach((nodeData, nodeId) => {
+                const erpId = nodeData.data._erpnext_id || nodeData.data.name;
+                if (erpId) {
+                    erpnextToNodeId.set(erpId, nodeId);
+                }
+            });
+
+            // Create connections for each node based on Link fields
+            state.nodes.forEach((nodeData, nodeId) => {
+                const nodeType = nodeTypes[nodeData.type];
+                const doctype = nodeType?.doctype;
+                if (!doctype) return;
+
+                const linkFields = linkFieldConnectors[doctype] || [];
+
+                linkFields.forEach(fieldName => {
+                    const linkedValue = nodeData.data[fieldName];
+                    if (linkedValue) {
+                        const targetNodeId = erpnextToNodeId.get(linkedValue);
+                        if (targetNodeId && targetNodeId !== nodeId) {
+                            // Create connection
+                            const connKey = `${nodeId}->${targetNodeId}`;
+                            if (!state.connections.some(c => c.from === nodeId && c.to === targetNodeId)) {
+                                state.connections.push({ from: nodeId, to: targetNodeId });
+                            }
+                            // Mark as database connection (non-deletable)
+                            databaseConnections.add(connKey);
+                        }
+                    }
+                });
+            });
+
+            drawConnections();
+        }
+
+        // Check if a connection can be deleted
+        function canDeleteConnection(fromId, toId) {
+            const connKey = `${fromId}->${toId}`;
+            return !databaseConnections.has(connKey);
+        }
+
+        // Auto-save with debouncing
+        function scheduleAutoSave() {
+            if (autoSaveTimer) {
+                clearTimeout(autoSaveTimer);
+            }
+            autoSaveTimer = setTimeout(saveAllDirtyNodes, 2000);
+        }
+
+        async function saveAllDirtyNodes() {
+            if (dirtyNodes.size === 0) return;
+
+            const nodesToSave = [...dirtyNodes];
+            showNotification(`Saving ${nodesToSave.length} changes...`, 'info');
+
+            for (const nodeId of nodesToSave) {
+                try {
+                    await saveNodeToERPNext(nodeId);
+                } catch (e) {
+                    // Error already shown
+                }
+            }
+        }
+
+        // ==================== NOTIFICATIONS ====================
+
+        function showNotification(message, type = 'info') {
+            // Add to activity log
+            const typeIcons = { success: '✅', error: '❌', info: 'ℹ️' };
+            addLogEntry(type === 'error' ? 'error' : type === 'success' ? 'success' : 'system',
+                { name: 'Canvas', icon: typeIcons[type] || '📋' }, message);
+
+            // Show toast notification
+            const container = document.getElementById('notification-container') || createNotificationContainer();
+            const toast = document.createElement('div');
+            toast.className = `notification ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => toast.classList.add('visible'));
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function createNotificationContainer() {
+            const container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.cssText = 'position:fixed;bottom:220px;right:20px;z-index:10000;display:flex;flex-direction:column-reverse;gap:8px;';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // Build organization chart from ERPNext data
+        function buildOrganizationFromData(data) {
+            const nodeMap = new Map(); // Track node IDs by ERPNext name
+            const deptSpacing = 480;
+            const deptStartX = 200;
+            const deptY = 550;
+            const subDeptY = 880;
+            const empY = 1200;
+
+            // 1. Create Company node
+            const companyId = createNode('company', 1400, 80, {
+                ...data.company,
+                name: data.company.name
+            });
+            nodeMap.set('company', companyId);
+
+            // 2. Find CTO (top of hierarchy)
+            const cto = data.employees.find(e => e.designation === 'Chief Technology Officer');
+            if (cto) {
+                const ctoId = createNode('boss', 1400, 300, {
+                    name: cto.employee_name,
+                    employee_id: cto.name,
+                    designation: cto.designation,
+                    user_id: cto.user_id,
+                    status: cto.status
+                });
+                nodeMap.set(cto.name, ctoId);
+                connectNodes(companyId, ctoId);
+            }
+
+            // 3. Create main departments (level 1)
+            const mainDepts = data.departments.filter(d => d.parent_department === 'All Departments');
+            mainDepts.forEach((dept, index) => {
+                // Find department head
+                const deptHead = data.employees.find(e =>
+                    (e.department === dept.name || e.department === dept.department_name) &&
+                    (e.designation?.includes('Chief') || e.designation?.includes('Director') || e.designation?.includes('Head'))
+                );
+
+                const deptId = createNode('department', deptStartX + deptSpacing * index, deptY, {
+                    name: dept.department_name,
+                    erpnext_name: dept.name,
+                    is_group: dept.is_group,
+                    head: deptHead ? {
+                        name: deptHead.employee_name,
+                        designation: deptHead.designation,
+                        employee_id: deptHead.name
+                    } : null
+                });
+                nodeMap.set(dept.name, deptId);
+
+                // Connect to CTO
+                if (cto) {
+                    connectNodes(nodeMap.get(cto.name), deptId);
+                }
+            });
+
+            // 4. Create sub-departments
+            const subDepts = data.departments.filter(d => d.parent_department !== 'All Departments');
+            const subDeptPositions = new Map(); // Track positions per parent
+
+            subDepts.forEach(subDept => {
+                const parentId = nodeMap.get(subDept.parent_department);
+                if (!parentId) return;
+
+                const parentData = state.nodes.get(parentId);
+                if (!parentData) return;
+
+                // Calculate position
+                if (!subDeptPositions.has(subDept.parent_department)) {
+                    subDeptPositions.set(subDept.parent_department, { count: 0, offset: -90 });
+                }
+                const pos = subDeptPositions.get(subDept.parent_department);
+                const xOffset = (pos.count % 2 === 0 ? -1 : 1) * 90 * Math.ceil((pos.count + 1) / 2);
+                const yOffset = Math.floor(pos.count / 2) * 130;
+                pos.count++;
+
+                const subDeptId = createNode('subdepartment', parentData.x + xOffset, subDeptY + yOffset, {
+                    name: subDept.department_name,
+                    erpnext_name: subDept.name,
+                    parent_department: subDept.parent_department,
+                    is_group: subDept.is_group
+                });
+                nodeMap.set(subDept.name, subDeptId);
+                connectNodes(parentId, subDeptId);
+            });
+
+            // 5. Create employee nodes
+            const regularEmployees = data.employees.filter(e =>
+                !e.is_agent &&
+                e.designation !== 'Chief Technology Officer' &&
+                !e.designation?.includes('Chief') &&
+                !e.designation?.includes('Director')
+            );
+
+            regularEmployees.forEach((emp, index) => {
+                const deptId = nodeMap.get(emp.department);
+                const baseX = deptId ? state.nodes.get(deptId)?.x || (deptStartX + index * 200) : (deptStartX + index * 200);
+
+                const empId = createNode('employee', baseX + (index % 3 - 1) * 180, empY + Math.floor(index / 3) * 150, {
+                    name: emp.employee_name,
+                    employee_id: emp.name,
+                    designation: emp.designation,
+                    department: emp.department,
+                    status: emp.status,
+                    user_id: emp.user_id,
+                    date_of_joining: emp.date_of_joining
+                });
+                nodeMap.set(emp.name, empId);
+
+                if (deptId) {
+                    connectNodes(deptId, empId);
+                }
+            });
+
+            // 6. Create agent nodes
+            const agents = data.employees.filter(e => e.is_agent);
+            agents.forEach((agent, index) => {
+                const reportsToId = nodeMap.get(agent.reports_to);
+                const baseX = reportsToId ? state.nodes.get(reportsToId)?.x || 1800 : 1800;
+
+                const agentId = createNode('agent', baseX + 300 + index * 200, empY, {
+                    name: agent.employee_name,
+                    employee_id: agent.name,
+                    designation: agent.designation,
+                    department: agent.department,
+                    status: 'Active',
+                    model: 'claude-sonnet'
+                });
+                nodeMap.set(agent.name, agentId);
+
+                if (reportsToId) {
+                    connectNodes(reportsToId, agentId);
+                }
+            });
+
+            // 7. Create project nodes
+            data.projects.forEach((proj, index) => {
+                const projId = createNode('project', deptStartX + deptSpacing * 4 - 200 + index * 220, empY + 200, {
+                    name: proj.project_name,
+                    project_id: proj.name,
+                    status: proj.status,
+                    percent_complete: proj.percent_complete,
+                    priority: proj.priority
+                });
+                nodeMap.set(proj.name, projId);
+            });
+
+            updateMinimap();
+        }
+
+        // ==================== INITIALISATIE ====================
+        function init() {
+            setupEventListeners();
+            updateTransform();
+            updateMinimap();
+
+            // Load data from ERPNext
+            loadFromERPNext();
+
+            // Connect WebSocket for live updates
+            setTimeout(connectWebSocket, 1000);
+        }
+
+        // ==================== NODE FUNCTIES ====================
+        function createNode(type, x, y, data = {}) {
+            const nodeType = nodeTypes[type];
+            const id = `node-${state.nodeIdCounter++}`;
+
+            // Assign temporary ERPNext ID for new nodes (not loaded from ERPNext)
+            const mergedData = { ...nodeType.defaultData, ...data };
+            if (!mergedData.employee_id && !mergedData.project_id && !mergedData.erpnext_name) {
+                if (nodeType.doctype === 'Employee') {
+                    mergedData.employee_id = `NEW-${id}`;
+                } else if (nodeType.doctype === 'Project') {
+                    mergedData.project_id = `NEW-${id}`;
+                } else if (nodeType.doctype === 'Department') {
+                    mergedData.erpnext_name = `NEW-${id}`;
+                }
+            }
+
+            const nodeData = {
+                id,
+                type,
+                x,
+                y,
+                data: mergedData
+            };
+
+            state.nodes.set(id, nodeData);
+
+            // Mark new nodes as dirty for auto-save (unless loaded from ERPNext)
+            const erpId = mergedData.employee_id || mergedData.project_id || mergedData.erpnext_name;
+            if (erpId && erpId.startsWith('NEW-')) {
+                dirtyNodes.add(id);
+            }
+
+            const nodeEl = document.createElement('div');
+            nodeEl.className = `node shape-${nodeType.shape || 'default'}`;
+            nodeEl.id = id;
+            nodeEl.dataset.type = type;
+            nodeEl.dataset.level = nodeType.level || 3;
+            nodeEl.style.left = `${x}px`;
+            nodeEl.style.top = `${y}px`;
+
+            // Build body content based on type
+            let bodyContent = '';
+            const d = nodeData.data;
+
+            if (type === 'agent' || type === 'agent_boss') {
+                const statusClass = (d.status || 'Active').toLowerCase();
+                bodyContent = `
+                    <div class="node-status">
+                        <span class="status-dot ${statusClass}"></span>
+                        <span>${d.status || 'Active'}</span>
+                    </div>
+                    <div style="margin-top: 4px; color: #666; font-size: 11px;">${d.model || 'claude-sonnet'}</div>
+                `;
+            } else if (type === 'employee' || type === 'boss' || type === 'afdelingshoofd') {
+                bodyContent = `<span>${d.designation || d.role || nodeType.title}</span>`;
+                // Use avatar image if no custom image set
+                if (!d.image) {
+                    const seed = encodeURIComponent(d.name || 'Employee');
+                    d.avatarUrl = `https://api.dicebear.com/7.x/personas/svg?seed=${seed}&backgroundColor=1a1a1a`;
+                }
+            } else if (type === 'task') {
+                const priorityColors = { Low: '#6b7280', Medium: '#eab308', High: '#f97316', Urgent: '#ef4444' };
+                bodyContent = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: ${priorityColors[d.priority] || '#888'}">${d.priority || 'Medium'}</span>
+                        <span style="color: #666;">•</span>
+                        <span>${d.status || 'Open'}</span>
+                    </div>
+                `;
+            } else if (type === 'project') {
+                bodyContent = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>${d.status || 'Open'}</span>
+                        <div style="flex: 1; height: 4px; background: #333; border-radius: 2px;">
+                            <div style="width: ${d.percent_complete || 0}%; height: 100%; background: ${nodeType.color}; border-radius: 2px;"></div>
+                        </div>
+                        <span style="color: #666;">${d.percent_complete || 0}%</span>
+                    </div>
+                `;
+            } else if (type === 'skill') {
+                bodyContent = `<span style="color: ${nodeType.color}">${d.category || 'Skill'}</span>`;
+            } else if (type === 'policy') {
+                bodyContent = `<span>${d.type || 'Guideline'} • ${d.status || 'Active'}</span>`;
+            } else if (type === 'jaardoel') {
+                const progressColor = (d.progress || 0) >= 100 ? '#22c55e' : (d.progress || 0) >= 50 ? '#eab308' : '#ef4444';
+                bodyContent = `
+                    <div style="margin-bottom: 6px;">${d.year || new Date().getFullYear()}</div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="flex: 1; height: 6px; background: #333; border-radius: 3px;">
+                            <div style="width: ${d.progress || 0}%; height: 100%; background: ${progressColor}; border-radius: 3px;"></div>
+                        </div>
+                        <span style="color: ${progressColor};">${d.progress || 0}%</span>
+                    </div>
+                `;
+            } else if (type === 'rapport') {
+                bodyContent = `<span>${d.type || 'Monthly'} • ${d.period || ''}</span>`;
+            } else if (type === 'kpi') {
+                const kpiPercent = d.target_value ? Math.round((d.current_value / d.target_value) * 100) : 0;
+                const kpiColor = kpiPercent >= 100 ? '#22c55e' : kpiPercent >= 70 ? '#eab308' : '#ef4444';
+                bodyContent = `
+                    <div style="text-align: center;">
+                        <span style="font-size: 18px; font-weight: bold; color: ${kpiColor};">${d.current_value || 0}</span>
+                        <span style="color: #666;">/ ${d.target_value || 0} ${d.unit || ''}</span>
+                    </div>
+                `;
+            } else if (type === 'department') {
+                bodyContent = d.parent_department ? `<span style="color: #666;">↳ ${d.parent_department}</span>` : `<span>${nodeType.title}</span>`;
+                // Check if department has a head (afdelingshoofd)
+                if (d.head) {
+                    const headSeed = encodeURIComponent(d.head.name || 'Head');
+                    d.head.avatarUrl = d.head.avatarUrl || `https://api.dicebear.com/7.x/personas/svg?seed=${headSeed}&backgroundColor=1a1a1a`;
+                }
+            } else {
+                bodyContent = `<span>${d.description || d.domain || nodeType.title}</span>`;
+            }
+
+            // ERPNext link indicator
+            const erpnextLink = nodeData.data.employee_id || nodeData.data.project_id || nodeData.data.task_id
+                ? `<div class="node-erpnext-link" title="Open in ERPNext">↗</div>`
+                : '';
+
+            // Special structure for hexagon shapes (agents)
+            if (nodeType.shape === 'hexagon') {
+                nodeEl.innerHTML = `
+                    <div class="node-inner">
+                        ${erpnextLink}
+                        <div class="node-header">
+                            <div class="node-icon">${nodeType.icon}</div>
+                            <div>
+                                <div class="node-title">${d.name || nodeType.title}</div>
+                                <div class="node-subtitle">${nodeType.title}</div>
+                            </div>
+                        </div>
+                        <div class="node-body node-ports">
+                            <div class="port port-input" data-port="input" data-node="${id}"></div>
+                            ${bodyContent}
+                            <div class="port port-output" data-port="output" data-node="${id}"></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Use avatar for person types (employee, boss, afdelingshoofd)
+                const isPersonType = ['employee', 'boss', 'afdelingshoofd'].includes(type);
+                const iconContent = isPersonType && d.avatarUrl
+                    ? `<img src="${d.avatarUrl}" alt="${d.name}" class="node-avatar" onerror="this.outerHTML='<div class=\\'node-icon\\'>${nodeType.icon}</div>'">`
+                    : `<div class="node-icon">${nodeType.icon}</div>`;
+
+                // Build addon HTML for department nodes
+                let addonHTML = '';
+                if (type === 'department') {
+                    if (d.head) {
+                        const headAvatar = d.head.avatarUrl
+                            ? `<img src="${d.head.avatarUrl}" alt="${d.head.name}" class="addon-avatar" onerror="this.outerHTML='<div class=\\'addon-icon\\'>👤</div>'">`
+                            : `<div class="addon-icon">👤</div>`;
+                        addonHTML = `
+                            <div class="node-addon" data-addon="head" data-node="${id}" title="${d.head.name} - ${d.head.designation || 'Afdelingshoofd'}">
+                                ${headAvatar}
+                                <div class="addon-name">${d.head.name ? d.head.name.split(' ')[0] : 'Head'}</div>
+                                <div class="addon-label">Hoofd</div>
+                            </div>
+                        `;
+                    } else {
+                        addonHTML = `
+                            <div class="node-addon empty" data-addon="head" data-node="${id}" title="Klik om afdelingshoofd toe te voegen">
+                                <div class="addon-icon">+</div>
+                                <div class="addon-name">Vacature</div>
+                                <div class="addon-label">Hoofd</div>
+                            </div>
+                        `;
+                    }
+                }
+
+                nodeEl.innerHTML = `
+                    ${erpnextLink}
+                    ${addonHTML}
+                    <div class="node-header" style="border-left: 3px solid ${nodeType.color};">
+                        ${iconContent}
+                        <div>
+                            <div class="node-title">${d.name || nodeType.title}</div>
+                            <div class="node-subtitle">${nodeType.title}</div>
+                        </div>
+                    </div>
+                    <div class="node-body node-ports">
+                        <div class="port port-input" data-port="input" data-node="${id}"></div>
+                        ${bodyContent}
+                        <div class="port port-output" data-port="output" data-node="${id}"></div>
+                    </div>
+                `;
+            }
+
+            canvas.appendChild(nodeEl);
+            updateMinimap();
+
+            return id;
+        }
+
+        async function deleteNode(id) {
+            // First sync with ERPNext
+            await deleteNodeFromERPNext(id);
+
+            const nodeEl = document.getElementById(id);
+            if (nodeEl) {
+                nodeEl.remove();
+                state.nodes.delete(id);
+                dirtyNodes.delete(id);
+                // Verwijder gerelateerde connections
+                state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
+                drawConnections();
+                updateMinimap();
+            }
+        }
+
+        // ==================== SELECTION FUNCTIES ====================
+        function selectNode(id, addToSelection = false) {
+            if (!addToSelection) {
+                // Clear previous selection
+                clearSelection();
+            }
+
+            if (id) {
+                state.selectedNodes.add(id);
+                const nodeEl = document.getElementById(id);
+                if (nodeEl) {
+                    nodeEl.classList.add('selected');
+                    nodeEl.classList.add('multi-selected');
+                }
+            }
+
+            updateSelectionInfo();
+        }
+
+        function deselectNode(id) {
+            state.selectedNodes.delete(id);
+            const nodeEl = document.getElementById(id);
+            if (nodeEl) {
+                nodeEl.classList.remove('selected');
+                nodeEl.classList.remove('multi-selected');
+            }
+            updateSelectionInfo();
+        }
+
+        function clearSelection() {
+            state.selectedNodes.forEach(id => {
+                const nodeEl = document.getElementById(id);
+                if (nodeEl) {
+                    nodeEl.classList.remove('selected');
+                    nodeEl.classList.remove('multi-selected');
+                }
+            });
+            state.selectedNodes.clear();
+            updateSelectionInfo();
+        }
+
+        function toggleNodeSelection(id) {
+            if (state.selectedNodes.has(id)) {
+                deselectNode(id);
+            } else {
+                selectNode(id, true);
+            }
+        }
+
+        function selectNodesInRect(x1, y1, x2, y2) {
+            // Normalize rect
+            const left = Math.min(x1, x2);
+            const right = Math.max(x1, x2);
+            const top = Math.min(y1, y2);
+            const bottom = Math.max(y1, y2);
+
+            state.nodes.forEach((nodeData, id) => {
+                const nodeEl = document.getElementById(id);
+                if (!nodeEl || nodeEl.classList.contains('level-hidden')) return;
+
+                // Get node bounds (approximate)
+                const nodeWidth = 180;
+                const nodeHeight = 80;
+                const nodeLeft = nodeData.x;
+                const nodeRight = nodeData.x + nodeWidth;
+                const nodeTop = nodeData.y;
+                const nodeBottom = nodeData.y + nodeHeight;
+
+                // Check overlap
+                if (nodeRight >= left && nodeLeft <= right && nodeBottom >= top && nodeTop <= bottom) {
+                    selectNode(id, true);
+                }
+            });
+        }
+
+        function updateSelectionInfo() {
+            const count = state.selectedNodes.size;
+            const infoEl = document.getElementById('selection-info');
+            const countEl = document.getElementById('selection-count');
+
+            if (count > 1) {
+                countEl.textContent = count;
+                infoEl.classList.add('visible');
+            } else {
+                infoEl.classList.remove('visible');
+            }
+        }
+
+        function updateSelectionBox() {
+            const box = document.getElementById('selection-box');
+            if (!state.isSelecting) {
+                box.style.display = 'none';
+                return;
+            }
+
+            const x1 = state.selectionStart.x;
+            const y1 = state.selectionStart.y;
+            const x2 = state.selectionEnd.x;
+            const y2 = state.selectionEnd.y;
+
+            const left = Math.min(x1, x2);
+            const top = Math.min(y1, y2);
+            const width = Math.abs(x2 - x1);
+            const height = Math.abs(y2 - y1);
+
+            box.style.display = 'block';
+            box.style.left = `${left}px`;
+            box.style.top = `${top}px`;
+            box.style.width = `${width}px`;
+            box.style.height = `${height}px`;
+        }
+
+        function moveNode(id, x, y) {
+            const nodeData = state.nodes.get(id);
+            if (!nodeData) return;
+
+            // Snap to grid indien ingeschakeld
+            if (CONFIG.snapToGrid) {
+                x = Math.round(x / CONFIG.gridSize) * CONFIG.gridSize;
+                y = Math.round(y / CONFIG.gridSize) * CONFIG.gridSize;
+            }
+
+            nodeData.x = x;
+            nodeData.y = y;
+
+            const nodeEl = document.getElementById(id);
+            if (nodeEl) {
+                nodeEl.style.left = `${x}px`;
+                nodeEl.style.top = `${y}px`;
+            }
+
+            drawConnections();
+            updateMinimap();
+        }
+
+        // ==================== CONNECTION FUNCTIES ====================
+        function connectNodes(fromId, toId) {
+            // Check of connectie al bestaat
+            const exists = state.connections.some(c => c.from === fromId && c.to === toId);
+            if (exists || fromId === toId) return;
+
+            state.connections.push({ from: fromId, to: toId });
+            drawConnections();
+
+            // Mark ports als connected
+            updatePortStates();
+        }
+
+        function drawConnections() {
+            // Bewaar defs element (voor arrowhead marker)
+            const defs = connectionsEl.querySelector('defs');
+            connectionsEl.innerHTML = '';
+            if (defs) connectionsEl.appendChild(defs);
+
+            state.connections.forEach(conn => {
+                const fromData = state.nodes.get(conn.from);
+                const toData = state.nodes.get(conn.to);
+                if (!fromData || !toData) return;
+
+                const fromEl = document.getElementById(conn.from);
+                const toEl = document.getElementById(conn.to);
+                if (!fromEl || !toEl) return;
+
+                // Check of beide nodes zichtbaar zijn
+                if (fromEl.classList.contains('level-hidden') || toEl.classList.contains('level-hidden')) {
+                    return;
+                }
+
+                // Gebruik opgeslagen posities + geschatte node grootte
+                const fromWidth = 180;
+                const fromHeight = 80;
+                const toWidth = 180;
+                const toHeight = 80;
+
+                const fromCenterX = fromData.x + fromWidth / 2;
+                const fromCenterY = fromData.y + fromHeight / 2;
+                const toCenterX = toData.x + toWidth / 2;
+                const toCenterY = toData.y + toHeight / 2;
+
+                // Bepaal of connectie meer verticaal of horizontaal is
+                const dx = Math.abs(toCenterX - fromCenterX);
+                const dy = Math.abs(toCenterY - fromCenterY);
+                const isVertical = dy > dx;
+
+                let x1, y1, x2, y2, pathD;
+
+                if (isVertical) {
+                    if (toCenterY > fromCenterY) {
+                        // Target is onder source
+                        x1 = fromCenterX;
+                        y1 = fromData.y + fromHeight;
+                        x2 = toCenterX;
+                        y2 = toData.y;
+                    } else {
+                        // Target is boven source
+                        x1 = fromCenterX;
+                        y1 = fromData.y;
+                        x2 = toCenterX;
+                        y2 = toData.y + toHeight;
+                    }
+
+                    if (state.lineStyle === 'curved') {
+                        const midY = (y1 + y2) / 2;
+                        pathD = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+                    } else {
+                        // 90-graden knik
+                        const midY = (y1 + y2) / 2;
+                        pathD = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+                    }
+                } else {
+                    if (toCenterX > fromCenterX) {
+                        // Target is rechts
+                        x1 = fromData.x + fromWidth;
+                        y1 = fromCenterY;
+                        x2 = toData.x;
+                        y2 = toCenterY;
+                    } else {
+                        // Target is links
+                        x1 = fromData.x;
+                        y1 = fromCenterY;
+                        x2 = toData.x + toWidth;
+                        y2 = toCenterY;
+                    }
+
+                    if (state.lineStyle === 'curved') {
+                        const midX = (x1 + x2) / 2;
+                        pathD = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+                    } else {
+                        // 90-graden knik
+                        const midX = (x1 + x2) / 2;
+                        pathD = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+                    }
+                }
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'connection');
+                path.setAttribute('d', pathD);
+                connectionsEl.appendChild(path);
+            });
+        }
+
+        function toggleLineStyle() {
+            state.lineStyle = state.lineStyle === 'curved' ? 'angled' : 'curved';
+            document.getElementById('line-style-icon').textContent = state.lineStyle === 'curved' ? '⌇' : '⌐';
+            document.getElementById('line-style-text').textContent = state.lineStyle === 'curved' ? 'Curved' : 'Angled';
+            drawConnections();
+        }
+
+        function toggleAutoHide() {
+            state.autoHideNodes = !state.autoHideNodes;
+            document.getElementById('visibility-icon').textContent = state.autoHideNodes ? '👁' : '👁‍🗨';
+            document.getElementById('visibility-text').textContent = state.autoHideNodes ? 'Auto-hide' : 'Show all';
+            updateNodeVisibility();
+            drawConnections();
+        }
+
+        function updatePortStates() {
+            document.querySelectorAll('.port').forEach(port => {
+                port.classList.remove('connected');
+            });
+
+            state.connections.forEach(conn => {
+                const fromEl = document.getElementById(conn.from);
+                const toEl = document.getElementById(conn.to);
+                if (fromEl) {
+                    const outPort = fromEl.querySelector('.port-output');
+                    if (outPort) outPort.classList.add('connected');
+                }
+                if (toEl) {
+                    const inPort = toEl.querySelector('.port-input');
+                    if (inPort) inPort.classList.add('connected');
+                }
+            });
+        }
+
+        // ==================== CANVAS TRANSFORMATIE ====================
+        function updateTransform() {
+            canvas.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+            zoomLevelEl.textContent = `${Math.round(state.zoom * 100)}%`;
+
+            // Update grid positie
+            grid.style.backgroundPosition = `${state.panX % (CONFIG.gridSize * state.zoom)}px ${state.panY % (CONFIG.gridSize * state.zoom)}px`;
+            grid.style.backgroundSize = `${CONFIG.gridSize * state.zoom}px ${CONFIG.gridSize * state.zoom}px`;
+
+            // Update node visibility based on zoom level
+            updateNodeVisibility();
+
+            requestAnimationFrame(() => {
+                drawConnections();
+                updateMinimap();
+            });
+        }
+
+        // Node visibility op basis van zoom level
+        function updateNodeVisibility() {
+            // Als auto-hide uit staat, toon alles
+            if (!state.autoHideNodes) {
+                document.querySelectorAll('.node').forEach(node => {
+                    node.classList.remove('level-hidden');
+                });
+                return;
+            }
+
+            // Zoom thresholds voor elk level - minder agressief
+            const thresholds = {
+                1: 0,      // Altijd zichtbaar (Company)
+                2: 0.2,    // Departments, Boss, Afdelingshoofd
+                3: 0.35,   // Sub-departments, Projects, Jaardoelen
+                4: 0.5,    // Employees, Agents, Rapporten
+                5: 0.65    // Tasks, Skills
+            };
+
+            document.querySelectorAll('.node').forEach(node => {
+                const level = parseInt(node.dataset.level) || 3;
+                const threshold = thresholds[level] || 0.35;
+
+                if (state.zoom < threshold) {
+                    node.classList.add('level-hidden');
+                } else {
+                    node.classList.remove('level-hidden');
+                }
+            });
+        }
+
+        function setZoom(newZoom, mouseX, mouseY) {
+            const oldZoom = state.zoom;
+            const clampedZoom = Math.max(CONFIG.minZoom, Math.min(CONFIG.maxZoom, newZoom));
+            if (clampedZoom === oldZoom) return;
+
+            if (mouseX !== undefined && mouseY !== undefined) {
+                const rect = canvasContainer.getBoundingClientRect();
+                const mouseRelX = mouseX - rect.left;
+                const mouseRelY = mouseY - rect.top;
+
+                const canvasX = (mouseRelX - state.panX) / oldZoom;
+                const canvasY = (mouseRelY - state.panY) / oldZoom;
+
+                state.zoom = clampedZoom;
+                state.panX = mouseRelX - canvasX * state.zoom;
+                state.panY = mouseRelY - canvasY * state.zoom;
+            } else {
+                state.zoom = clampedZoom;
+            }
+
+            updateTransform();
+        }
+
+        function zoomIn() {
+            const rect = canvasContainer.getBoundingClientRect();
+            setZoom(state.zoom + CONFIG.zoomStep, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+
+        function zoomOut() {
+            const rect = canvasContainer.getBoundingClientRect();
+            setZoom(state.zoom - CONFIG.zoomStep, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+
+        function resetView() {
+            state.zoom = 1;
+            state.panX = 0;
+            state.panY = 0;
+            updateTransform();
+        }
+
+        // ==================== MINIMAP ====================
+        function updateMinimap() {
+            const minimapContent = document.getElementById('minimap-content');
+            const viewport = document.getElementById('minimap-viewport');
+
+            // Clear oude nodes
+            minimapContent.querySelectorAll('.minimap-node').forEach(n => n.remove());
+
+            // Bereken bounds
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            state.nodes.forEach(node => {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + 150);
+                maxY = Math.max(maxY, node.y + 80);
+            });
+
+            if (state.nodes.size === 0) {
+                minX = 0; minY = 0; maxX = 800; maxY = 600;
+            }
+
+            const padding = 50;
+            const worldWidth = maxX - minX + padding * 2;
+            const worldHeight = maxY - minY + padding * 2;
+            const scale = Math.min(180 / worldWidth, 120 / worldHeight);
+
+            // Teken nodes
+            state.nodes.forEach(node => {
+                const div = document.createElement('div');
+                div.className = 'minimap-node';
+                div.style.left = `${(node.x - minX + padding) * scale}px`;
+                div.style.top = `${(node.y - minY + padding) * scale}px`;
+                div.style.width = `${Math.max(4, 150 * scale)}px`;
+                div.style.height = `${Math.max(3, 60 * scale)}px`;
+                minimapContent.appendChild(div);
+            });
+
+            // Viewport
+            const containerRect = canvasContainer.getBoundingClientRect();
+            const vpX = (-state.panX / state.zoom - minX + padding) * scale;
+            const vpY = (-state.panY / state.zoom - minY + padding) * scale;
+            const vpW = (containerRect.width / state.zoom) * scale;
+            const vpH = (containerRect.height / state.zoom) * scale;
+
+            viewport.style.left = `${vpX}px`;
+            viewport.style.top = `${vpY}px`;
+            viewport.style.width = `${vpW}px`;
+            viewport.style.height = `${vpH}px`;
+        }
+
+        // ==================== PROPERTIES PANEL ====================
+
+        // Fields to hide in properties panel (internal/system fields)
+        const hiddenFields = new Set([
+            'docstatus', 'idx', 'owner', 'creation', 'modified', 'modified_by',
+            'doctype', '_user_tags', '_comments', '_assign', '_liked_by',
+            'naming_series', 'amended_from', 'lft', 'rgt', 'old_parent'
+        ]);
+
+        // Field sections for grouping
+        const fieldSections = {
+            'Employee': {
+                'Basis Info': ['employee_name', 'first_name', 'last_name', 'gender', 'date_of_birth', 'date_of_joining', 'status'],
+                'Organisatie': ['company', 'department', 'designation', 'reports_to', 'branch'],
+                'Contact': ['cell_number', 'personal_email', 'company_email', 'user_id'],
+                'Agent': ['custom_is_agent', 'custom_agent_model', 'custom_agent_system_prompt']
+            },
+            'Department': {
+                'Basis Info': ['department_name', 'company', 'parent_department', 'is_group', 'disabled']
+            },
+            'Project': {
+                'Basis Info': ['project_name', 'status', 'is_active', 'percent_complete', 'priority'],
+                'Planning': ['expected_start_date', 'expected_end_date', 'actual_start_date', 'actual_end_date'],
+                'Organisatie': ['company', 'department', 'custom_project_manager', 'customer'],
+                'Financieel': ['estimated_costing', 'total_costing_amount', 'total_billable_amount']
+            }
+        };
+
+        // Render a single field based on ERPNext field definition
+        function renderERPNextField(field, nodeId, data, uniqueId) {
+            const value = data[field.fieldname] ?? '';
+            const fieldId = `field-${uniqueId}-${field.fieldname}`;
+            const readOnly = field.read_only || field.fieldname === 'name';
+            let fieldHtml = '';
+
+            switch (field.fieldtype) {
+                case 'Link':
+                    // Searchable dropdown for Link fields
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label} <span style="color: #4a9eff; font-size: 9px;">→ ${field.options}</span></div>
+                            <div class="link-field-container" style="position: relative;">
+                                <input class="property-input link-field-input"
+                                       type="text"
+                                       id="${fieldId}"
+                                       value="${value}"
+                                       data-node="${nodeId}"
+                                       data-property="${field.fieldname}"
+                                       data-doctype="${field.options}"
+                                       placeholder="Zoek ${field.options}..."
+                                       onfocus="openLinkDropdown(this)"
+                                       oninput="searchLinkField(this)"
+                                       onblur="setTimeout(() => closeLinkDropdown(this), 200)"
+                                       ${readOnly ? 'readonly style="opacity: 0.6;"' : ''}
+                                       autocomplete="off">
+                                <div class="link-dropdown" id="dropdown-${fieldId}" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 1000;">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'Select':
+                    const options = (field.options || '').split('\n').filter(o => o.trim());
+                    const optionsHtml = options.map(opt =>
+                        `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`
+                    ).join('');
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}</div>
+                            <select class="property-input"
+                                    id="${fieldId}"
+                                    data-node="${nodeId}"
+                                    data-property="${field.fieldname}"
+                                    onchange="updateNodeProperty(this)"
+                                    ${readOnly ? 'disabled' : ''}>
+                                <option value="">-- Selecteer --</option>
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                    `;
+                    break;
+
+                case 'Check':
+                    fieldHtml = `
+                        <div class="property-group" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="${fieldId}"
+                                   ${value ? 'checked' : ''}
+                                   data-node="${nodeId}"
+                                   data-property="${field.fieldname}"
+                                   onchange="updateNodeProperty(this)"
+                                   ${readOnly ? 'disabled' : ''}
+                                   style="width: 18px; height: 18px; accent-color: #4a9eff;">
+                            <label for="${fieldId}" class="property-label" style="margin: 0;">${field.label}</label>
+                        </div>
+                    `;
+                    break;
+
+                case 'Date':
+                case 'Datetime':
+                    const dateValue = value ? value.split(' ')[0] : '';
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}</div>
+                            <input class="property-input"
+                                   type="date"
+                                   id="${fieldId}"
+                                   value="${dateValue}"
+                                   data-node="${nodeId}"
+                                   data-property="${field.fieldname}"
+                                   onchange="updateNodeProperty(this)"
+                                   ${readOnly ? 'readonly style="opacity: 0.6;"' : ''}>
+                        </div>
+                    `;
+                    break;
+
+                case 'Currency':
+                case 'Float':
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}</div>
+                            <div style="position: relative;">
+                                ${field.fieldtype === 'Currency' ? '<span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #666;">€</span>' : ''}
+                                <input class="property-input"
+                                       type="number"
+                                       step="${field.fieldtype === 'Currency' ? '0.01' : 'any'}"
+                                       id="${fieldId}"
+                                       value="${value || 0}"
+                                       data-node="${nodeId}"
+                                       data-property="${field.fieldname}"
+                                       onchange="updateNodeProperty(this)"
+                                       ${readOnly ? 'readonly style="opacity: 0.6;"' : ''}
+                                       ${field.fieldtype === 'Currency' ? 'style="padding-left: 28px;"' : ''}>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'Int':
+                case 'Percent':
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}${field.fieldtype === 'Percent' ? ' (%)' : ''}</div>
+                            <input class="property-input"
+                                   type="number"
+                                   step="1"
+                                   id="${fieldId}"
+                                   value="${value || 0}"
+                                   data-node="${nodeId}"
+                                   data-property="${field.fieldname}"
+                                   onchange="updateNodeProperty(this)"
+                                   ${readOnly ? 'readonly style="opacity: 0.6;"' : ''}>
+                        </div>
+                    `;
+                    break;
+
+                case 'Text':
+                case 'Small Text':
+                case 'Long Text':
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}</div>
+                            <textarea class="property-input"
+                                      id="${fieldId}"
+                                      data-node="${nodeId}"
+                                      data-property="${field.fieldname}"
+                                      onchange="updateNodeProperty(this)"
+                                      ${readOnly ? 'readonly style="opacity: 0.6;"' : ''}
+                                      rows="3"
+                                      style="resize: vertical;">${value}</textarea>
+                        </div>
+                    `;
+                    break;
+
+                case 'Data':
+                case 'Read Only':
+                default:
+                    if (field.fieldtype === 'Section Break' || field.fieldtype === 'Column Break' ||
+                        field.fieldtype === 'Tab Break' || field.fieldtype === 'HTML' ||
+                        field.fieldtype === 'Table' || field.fieldtype === 'Attach' ||
+                        field.fieldtype === 'Attach Image') {
+                        return '';
+                    }
+                    fieldHtml = `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}</div>
+                            <input class="property-input"
+                                   type="text"
+                                   id="${fieldId}"
+                                   value="${value}"
+                                   data-node="${nodeId}"
+                                   data-property="${field.fieldname}"
+                                   onchange="updateNodeProperty(this)"
+                                   ${readOnly ? 'readonly style="opacity: 0.6;"' : ''}>
+                        </div>
+                    `;
+            }
+            return fieldHtml;
+        }
+
+        // Open Link field dropdown
+        async function openLinkDropdown(input) {
+            const doctype = input.dataset.doctype;
+            const dropdownId = `dropdown-${input.id}`;
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown || input.readOnly) return;
+
+            dropdown.style.display = 'block';
+            dropdown.innerHTML = '<div style="padding: 10px; color: #666;">Laden...</div>';
+
+            try {
+                const options = await erpnextSearchLink(doctype, '', {});
+                renderLinkOptions(dropdown, options, input);
+            } catch (error) {
+                dropdown.innerHTML = '<div style="padding: 10px; color: #f87171;">Fout bij laden</div>';
+            }
+        }
+
+        // Search in Link field
+        async function searchLinkField(input) {
+            const doctype = input.dataset.doctype;
+            const searchText = input.value;
+            const dropdownId = `dropdown-${input.id}`;
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+
+            dropdown.style.display = 'block';
+
+            // Debounce search
+            clearTimeout(input.searchTimeout);
+            input.searchTimeout = setTimeout(async () => {
+                try {
+                    const options = await erpnextSearchLink(doctype, searchText, {});
+                    renderLinkOptions(dropdown, options, input);
+                } catch (error) {
+                    dropdown.innerHTML = '<div style="padding: 10px; color: #f87171;">Fout bij zoeken</div>';
+                }
+            }, 300);
+        }
+
+        // Render link dropdown options
+        function renderLinkOptions(dropdown, options, input) {
+            if (options.length === 0) {
+                dropdown.innerHTML = '<div style="padding: 10px; color: #666;">Geen resultaten</div>';
+                return;
+            }
+
+            dropdown.innerHTML = options.map(opt => {
+                // Handle both simple strings and {value, description} objects
+                const value = typeof opt === 'string' ? opt : opt.value;
+                const description = typeof opt === 'string' ? '' : opt.description;
+                const escapedValue = value.replace(/'/g, "\\'");
+
+                return `
+                    <div class="link-option"
+                         style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #252525;"
+                         onmousedown="selectLinkOption('${input.id}', '${escapedValue}')"
+                         onmouseover="this.style.background='#252525'"
+                         onmouseout="this.style.background='transparent'">
+                        <div style="color: #fff;">${value}</div>
+                        ${description ? `<div style="font-size: 11px; color: #666; margin-top: 2px;">${description}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Select a link option
+        function selectLinkOption(inputId, value) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            input.value = value;
+            updateNodeProperty(input);
+            closeLinkDropdown(input);
+        }
+
+        // Close link dropdown
+        function closeLinkDropdown(input) {
+            const dropdownId = `dropdown-${input.id}`;
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        async function openPropertiesPanel(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData) return;
+
+            const nodeType = nodeTypes[nodeData.type];
+            const doctype = nodeType.doctype;
+            const uniqueId = Date.now();
+
+            // Show loading state
+            propertiesContent.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #333;">
+                    <div style="font-size: 28px;">${nodeType.icon}</div>
+                    <div>
+                        <h3 style="color: ${nodeType.color}; margin: 0;">${nodeData.data.name || nodeData.data.employee_name || nodeData.data.project_name || nodeType.title}</h3>
+                        <div style="color: #666; font-size: 12px;">${doctype}</div>
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    Velden laden...
+                </div>
+            `;
+            propertiesPanel.classList.add('open');
+
+            // Fetch doctype metadata
+            let meta = null;
+            try {
+                meta = await erpnextGetMeta(doctype);
+            } catch (error) {
+                console.error('Failed to fetch doctype meta:', error);
+            }
+
+            let html = `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #333;">
+                    <div style="font-size: 28px;">${nodeType.icon}</div>
+                    <div>
+                        <h3 style="color: ${nodeType.color}; margin: 0;">${nodeData.data.name || nodeData.data.employee_name || nodeData.data.project_name || nodeType.title}</h3>
+                        <div style="color: #666; font-size: 12px;">${doctype}</div>
+                    </div>
+                </div>
+            `;
+
+            if (meta && meta.fields) {
+                // Group fields by section
+                const sections = fieldSections[doctype];
+
+                if (sections) {
+                    // Use predefined sections
+                    for (const [sectionName, fieldNames] of Object.entries(sections)) {
+                        html += `
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 11px; color: #4a9eff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #252525;">
+                                    ${sectionName}
+                                </div>
+                        `;
+
+                        for (const fieldName of fieldNames) {
+                            const field = meta.fields.find(f => f.fieldname === fieldName);
+                            if (field && !hiddenFields.has(field.fieldname)) {
+                                html += renderERPNextField(field, nodeId, nodeData.data, uniqueId);
+                            }
+                        }
+
+                        html += `</div>`;
+                    }
+
+                    // Add "Other Fields" section for remaining fields
+                    const usedFields = new Set(Object.values(sections).flat());
+                    const otherFields = meta.fields.filter(f =>
+                        !usedFields.has(f.fieldname) &&
+                        !hiddenFields.has(f.fieldname) &&
+                        f.fieldtype !== 'Section Break' &&
+                        f.fieldtype !== 'Column Break' &&
+                        f.fieldtype !== 'Tab Break' &&
+                        f.fieldtype !== 'Table' &&
+                        !f.hidden
+                    );
+
+                    if (otherFields.length > 0) {
+                        html += `
+                            <div style="margin-bottom: 20px;">
+                                <details>
+                                    <summary style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #252525; cursor: pointer;">
+                                        Overige Velden (${otherFields.length})
+                                    </summary>
+                                    <div style="margin-top: 12px;">
+                        `;
+
+                        for (const field of otherFields) {
+                            html += renderERPNextField(field, nodeId, nodeData.data, uniqueId);
+                        }
+
+                        html += `</div></details></div>`;
+                    }
+                } else {
+                    // No predefined sections - show all fields
+                    const visibleFields = meta.fields.filter(f =>
+                        !hiddenFields.has(f.fieldname) &&
+                        f.fieldtype !== 'Section Break' &&
+                        f.fieldtype !== 'Column Break' &&
+                        f.fieldtype !== 'Tab Break' &&
+                        f.fieldtype !== 'Table' &&
+                        !f.hidden
+                    );
+
+                    for (const field of visibleFields) {
+                        html += renderERPNextField(field, nodeId, nodeData.data, uniqueId);
+                    }
+                }
+            } else {
+                // Fallback: show all data properties (no metadata available)
+                html += `<div style="color: #f97171; margin-bottom: 16px; font-size: 12px;">⚠️ Geen ERPNext metadata beschikbaar</div>`;
+                Object.entries(nodeData.data).forEach(([key, value]) => {
+                    if (key !== 'avatarUrl' && key !== 'head' && !key.startsWith('_')) {
+                        html += `
+                            <div class="property-group">
+                                <div class="property-label">${key}</div>
+                                <input class="property-input" type="text" value="${value || ''}"
+                                       data-node="${nodeId}" data-property="${key}"
+                                       onchange="updateNodeProperty(this)">
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            // ERPNext link button
+            const erpId = nodeData.data.name || nodeData.data.employee_id || nodeData.data.project_id || nodeData.data.task_id;
+            if (erpId && !erpId.startsWith('NEW-')) {
+                const doctypeSlug = doctype.toLowerCase().replace(/ /g, '-');
+                html += `
+                    <div style="margin-top: 20px;">
+                        <button onclick="window.open('${ERPNEXT_API.directUrl}/app/${doctypeSlug}/${encodeURIComponent(erpId)}', '_blank')"
+                                style="background: #1e40af; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span>↗</span> Open in ERPNext
+                        </button>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div style="margin-top: 16px; padding-top: 20px; border-top: 1px solid #333;">
+                    <button onclick="deleteNode('${nodeId}'); closePropertiesPanel();"
+                            style="background: #dc2626; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%;">
+                        Delete Node
+                    </button>
+                </div>
+            `;
+
+            propertiesContent.innerHTML = html;
+        }
+
+        function closePropertiesPanel() {
+            propertiesPanel.classList.remove('open');
+        }
+
+        // Open properties panel for department head (addon)
+        function openAddonPropertiesPanel(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData || nodeData.type !== 'department') return;
+
+            const headData = nodeData.data.head || {};
+            const hasHead = !!nodeData.data.head;
+
+            let html = `
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #333;">
+                    <div style="font-size: 28px;">👤</div>
+                    <div>
+                        <h3 style="color: #f97316; margin: 0;">${hasHead ? headData.name : 'Afdelingshoofd'}</h3>
+                        <div style="color: #666; font-size: 12px;">Hoofd van ${nodeData.data.name}</div>
+                    </div>
+                </div>
+            `;
+
+            if (hasHead) {
+                // Show existing head properties
+                const fields = [
+                    { key: 'name', label: 'Name', type: 'text' },
+                    { key: 'employee_id', label: 'Employee ID', type: 'text', readonly: true },
+                    { key: 'designation', label: 'Designation', type: 'text' },
+                    { key: 'email', label: 'Email', type: 'email' }
+                ];
+
+                fields.forEach(field => {
+                    const value = headData[field.key] || '';
+                    html += `
+                        <div class="property-group">
+                            <div class="property-label">${field.label}</div>
+                            <input class="property-input"
+                                   type="${field.type === 'number' ? 'number' : 'text'}"
+                                   value="${value}"
+                                   data-node="${nodeId}"
+                                   data-addon="head"
+                                   data-property="${field.key}"
+                                   onchange="updateAddonProperty(this)"
+                                   ${field.readonly ? 'readonly style="opacity: 0.6;"' : ''}>
+                        </div>
+                    `;
+                });
+
+                // ERPNext link
+                if (headData.employee_id) {
+                    html += `
+                        <div style="margin-top: 20px;">
+                            <button onclick="window.open('https://example.erpnext.com/app/employee/${headData.employee_id}', '_blank')"
+                                    style="background: #1e40af; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <span>↗</span> Open in ERPNext
+                            </button>
+                        </div>
+                    `;
+                }
+
+                // Remove head button
+                html += `
+                    <div style="margin-top: 16px; padding-top: 20px; border-top: 1px solid #333;">
+                        <button onclick="removeAddonHead('${nodeId}')"
+                                style="background: #dc2626; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%;">
+                            Verwijder Afdelingshoofd
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Show form to add new head
+                html += `
+                    <div style="text-align: center; padding: 20px; color: #666;">
+                        <p style="margin-bottom: 16px;">Deze afdeling heeft nog geen afdelingshoofd.</p>
+                    </div>
+                    <div class="property-group">
+                        <div class="property-label">Naam</div>
+                        <input class="property-input" type="text" id="new-head-name" placeholder="Naam afdelingshoofd">
+                    </div>
+                    <div class="property-group">
+                        <div class="property-label">Functie</div>
+                        <input class="property-input" type="text" id="new-head-designation" placeholder="Afdelingshoofd" value="Afdelingshoofd">
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button onclick="addAddonHead('${nodeId}')"
+                                style="background: #16a34a; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%;">
+                            Afdelingshoofd Toevoegen
+                        </button>
+                    </div>
+                `;
+            }
+
+            propertiesContent.innerHTML = html;
+            propertiesPanel.classList.add('open');
+        }
+
+        // Update addon property
+        function updateAddonProperty(input) {
+            const nodeId = input.dataset.node;
+            const addonType = input.dataset.addon;
+            const property = input.dataset.property;
+            const value = input.value;
+
+            const nodeData = state.nodes.get(nodeId);
+            if (nodeData && nodeData.data[addonType]) {
+                nodeData.data[addonType][property] = value;
+
+                // Update visual if name changed
+                if (property === 'name') {
+                    const addonEl = document.querySelector(`[data-addon="${addonType}"][data-node="${nodeId}"] .addon-name`);
+                    if (addonEl) {
+                        addonEl.textContent = value.split(' ')[0];
+                    }
+                    // Update avatar
+                    const avatarEl = document.querySelector(`[data-addon="${addonType}"][data-node="${nodeId}"] .addon-avatar`);
+                    if (avatarEl) {
+                        const newSeed = encodeURIComponent(value);
+                        avatarEl.src = `https://api.dicebear.com/7.x/personas/svg?seed=${newSeed}&backgroundColor=1a1a1a`;
+                    }
+                }
+            }
+        }
+
+        // Add new head to department
+        function addAddonHead(nodeId) {
+            const nameInput = document.getElementById('new-head-name');
+            const designationInput = document.getElementById('new-head-designation');
+
+            const name = nameInput.value.trim();
+            const designation = designationInput.value.trim() || 'Afdelingshoofd';
+
+            if (!name) {
+                nameInput.style.borderColor = '#ef4444';
+                return;
+            }
+
+            const nodeData = state.nodes.get(nodeId);
+            if (nodeData) {
+                const seed = encodeURIComponent(name);
+                nodeData.data.head = {
+                    name: name,
+                    designation: designation,
+                    avatarUrl: `https://api.dicebear.com/7.x/personas/svg?seed=${seed}&backgroundColor=1a1a1a`
+                };
+
+                // Re-render the node
+                const nodeEl = document.getElementById(nodeId);
+                if (nodeEl) {
+                    // Update addon HTML
+                    const oldAddon = nodeEl.querySelector('.node-addon');
+                    if (oldAddon) {
+                        const newAddon = document.createElement('div');
+                        newAddon.className = 'node-addon';
+                        newAddon.dataset.addon = 'head';
+                        newAddon.dataset.node = nodeId;
+                        newAddon.title = `${name} - ${designation}`;
+                        newAddon.innerHTML = `
+                            <img src="${nodeData.data.head.avatarUrl}" alt="${name}" class="addon-avatar" onerror="this.outerHTML='<div class=\\'addon-icon\\'>👤</div>'">
+                            <div class="addon-name">${name.split(' ')[0]}</div>
+                            <div class="addon-label">Hoofd</div>
+                        `;
+                        oldAddon.replaceWith(newAddon);
+                    }
+                }
+
+                // Refresh properties panel
+                openAddonPropertiesPanel(nodeId);
+            }
+        }
+
+        // Remove head from department
+        function removeAddonHead(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (nodeData) {
+                nodeData.data.head = null;
+
+                // Re-render the addon as empty
+                const nodeEl = document.getElementById(nodeId);
+                if (nodeEl) {
+                    const oldAddon = nodeEl.querySelector('.node-addon');
+                    if (oldAddon) {
+                        const newAddon = document.createElement('div');
+                        newAddon.className = 'node-addon empty';
+                        newAddon.dataset.addon = 'head';
+                        newAddon.dataset.node = nodeId;
+                        newAddon.title = 'Klik om afdelingshoofd toe te voegen';
+                        newAddon.innerHTML = `
+                            <div class="addon-icon">+</div>
+                            <div class="addon-name">Vacature</div>
+                            <div class="addon-label">Hoofd</div>
+                        `;
+                        oldAddon.replaceWith(newAddon);
+                    }
+                }
+
+                closePropertiesPanel();
+            }
+        }
+
+        function updateNodeProperty(input) {
+            const nodeId = input.dataset.node;
+            const property = input.dataset.property;
+            const doctype = input.dataset.doctype; // For Link fields
+            const value = input.type === 'checkbox' ? (input.checked ? 1 : 0) : input.value;
+
+            const nodeData = state.nodes.get(nodeId);
+            if (nodeData) {
+                nodeData.data[property] = value;
+
+                // Mark as dirty for auto-save
+                dirtyNodes.add(nodeId);
+                scheduleAutoSave();
+
+                // Update visuele node
+                const nodeEl = document.getElementById(nodeId);
+                if (nodeEl) {
+                    // Update title based on doctype
+                    const nodeType = nodeTypes[nodeData.type];
+                    if (property === 'name' || property === 'employee_name' || property === 'project_name' || property === 'department_name') {
+                        const titleEl = nodeEl.querySelector('.node-title');
+                        if (titleEl) titleEl.textContent = value;
+                    }
+                }
+
+                // If a Link field was updated, refresh auto-connections
+                if (doctype) {
+                    createAutoConnections();
+                }
+            }
+        }
+
+        // ==================== CONTEXT MENU ====================
+        function showContextMenu(x, y) {
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.top = `${y}px`;
+            contextMenu.style.display = 'block';
+
+            // Sla canvas positie op voor node creatie
+            const rect = canvasContainer.getBoundingClientRect();
+            contextMenu.dataset.canvasX = (x - rect.left - state.panX) / state.zoom;
+            contextMenu.dataset.canvasY = (y - rect.top - state.panY) / state.zoom;
+        }
+
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+        }
+
+        function addNodeAtCenter(type) {
+            const rect = canvasContainer.getBoundingClientRect();
+            const x = (rect.width / 2 - state.panX) / state.zoom - 75;
+            const y = (rect.height / 2 - state.panY) / state.zoom - 40;
+            createNode(type, x, y);
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        function setupEventListeners() {
+            // Wheel zoom
+            canvasContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -CONFIG.zoomStep : CONFIG.zoomStep;
+                setZoom(state.zoom + delta, e.clientX, e.clientY);
+            }, { passive: false });
+
+            // Mouse down
+            canvasContainer.addEventListener('mousedown', (e) => {
+                const target = e.target;
+
+                // Port klik - start connectie
+                if (target.classList.contains('port')) {
+                    e.stopPropagation();
+                    state.connectingFrom = {
+                        nodeId: target.dataset.node,
+                        portType: target.dataset.port
+                    };
+                    return;
+                }
+
+                // Addon click - don't start drag
+                if (target.closest('.node-addon')) {
+                    return;
+                }
+
+                // Node klik
+                const nodeEl = target.closest('.node');
+                if (nodeEl && e.button === 0) {
+                    const nodeId = nodeEl.id;
+
+                    // Shift+click: toggle selection
+                    if (e.shiftKey) {
+                        toggleNodeSelection(nodeId);
+                        return;
+                    }
+
+                    // Ctrl/Cmd+click: add to selection
+                    if (e.ctrlKey || e.metaKey) {
+                        selectNode(nodeId, true);
+                    } else {
+                        // Regular click: if node is already in selection, drag all selected
+                        // Otherwise, select only this node
+                        if (!state.selectedNodes.has(nodeId)) {
+                            selectNode(nodeId, false);
+                        }
+                    }
+
+                    // Start dragging all selected nodes
+                    state.draggingNodes = true;
+                    state.dragOffsets.clear();
+
+                    const rect = canvasContainer.getBoundingClientRect();
+                    const mouseCanvasX = (e.clientX - rect.left - state.panX) / state.zoom;
+                    const mouseCanvasY = (e.clientY - rect.top - state.panY) / state.zoom;
+
+                    // Calculate offset for each selected node
+                    state.selectedNodes.forEach(id => {
+                        const nodeData = state.nodes.get(id);
+                        if (nodeData) {
+                            state.dragOffsets.set(id, {
+                                x: mouseCanvasX - nodeData.x,
+                                y: mouseCanvasY - nodeData.y
+                            });
+                            const el = document.getElementById(id);
+                            if (el) el.classList.add('dragging');
+                        }
+                    });
+
+                    return;
+                }
+
+                // Canvas click without shift - start selection box or pan
+                if (e.button === 0 && !e.shiftKey) {
+                    // Start selection box
+                    const rect = canvasContainer.getBoundingClientRect();
+                    const canvasX = (e.clientX - rect.left - state.panX) / state.zoom;
+                    const canvasY = (e.clientY - rect.top - state.panY) / state.zoom;
+
+                    state.isSelecting = true;
+                    state.selectionStart = { x: canvasX, y: canvasY };
+                    state.selectionEnd = { x: canvasX, y: canvasY };
+
+                    // Clear selection unless ctrl/cmd is held
+                    if (!e.ctrlKey && !e.metaKey) {
+                        clearSelection();
+                    }
+
+                    state.lastMouse = { x: e.clientX, y: e.clientY };
+                    canvasContainer.style.cursor = 'crosshair';
+                    return;
+                }
+
+                // Middle mouse or shift+click for panning
+                if (e.button === 1 || (e.button === 0 && e.shiftKey && !target.closest('.node'))) {
+                    state.isPanning = true;
+                    state.lastMouse = { x: e.clientX, y: e.clientY };
+                    canvasContainer.style.cursor = 'grabbing';
+                }
+            });
+
+            // Mouse move
+            document.addEventListener('mousemove', (e) => {
+                // Multi-node drag
+                if (state.draggingNodes && state.selectedNodes.size > 0) {
+                    const rect = canvasContainer.getBoundingClientRect();
+                    const mouseCanvasX = (e.clientX - rect.left - state.panX) / state.zoom;
+                    const mouseCanvasY = (e.clientY - rect.top - state.panY) / state.zoom;
+
+                    state.selectedNodes.forEach(id => {
+                        const offset = state.dragOffsets.get(id);
+                        if (offset) {
+                            const newX = mouseCanvasX - offset.x;
+                            const newY = mouseCanvasY - offset.y;
+                            moveNode(id, newX, newY);
+                        }
+                    });
+                    return;
+                }
+
+                // Selection box drag
+                if (state.isSelecting) {
+                    const rect = canvasContainer.getBoundingClientRect();
+                    state.selectionEnd = {
+                        x: (e.clientX - rect.left - state.panX) / state.zoom,
+                        y: (e.clientY - rect.top - state.panY) / state.zoom
+                    };
+                    updateSelectionBox();
+                    return;
+                }
+
+                // Canvas pan
+                if (state.isPanning) {
+                    const dx = e.clientX - state.lastMouse.x;
+                    const dy = e.clientY - state.lastMouse.y;
+                    state.panX += dx;
+                    state.panY += dy;
+                    state.lastMouse = { x: e.clientX, y: e.clientY };
+                    updateTransform();
+                }
+            });
+
+            // Mouse up
+            document.addEventListener('mouseup', (e) => {
+                // Einde multi-node drag
+                if (state.draggingNodes) {
+                    state.selectedNodes.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.classList.remove('dragging');
+                    });
+                    state.draggingNodes = false;
+                    state.dragOffsets.clear();
+                }
+
+                // Einde selection box
+                if (state.isSelecting) {
+                    // Select all nodes in the box
+                    selectNodesInRect(
+                        state.selectionStart.x,
+                        state.selectionStart.y,
+                        state.selectionEnd.x,
+                        state.selectionEnd.y
+                    );
+                    state.isSelecting = false;
+                    updateSelectionBox();
+                }
+
+                // Einde connectie trekken
+                if (state.connectingFrom) {
+                    const target = e.target;
+                    if (target.classList.contains('port')) {
+                        const toNodeId = target.dataset.node;
+                        const toPortType = target.dataset.port;
+
+                        // Connect alleen output -> input
+                        if (state.connectingFrom.portType === 'output' && toPortType === 'input') {
+                            connectNodes(state.connectingFrom.nodeId, toNodeId);
+                        } else if (state.connectingFrom.portType === 'input' && toPortType === 'output') {
+                            connectNodes(toNodeId, state.connectingFrom.nodeId);
+                        }
+                    }
+                    state.connectingFrom = null;
+                }
+
+                // Einde pan
+                state.isPanning = false;
+                canvasContainer.style.cursor = 'default';
+            });
+
+            // Double click - open properties
+            canvasContainer.addEventListener('dblclick', (e) => {
+                // Check if clicked on addon
+                const addonEl = e.target.closest('.node-addon');
+                if (addonEl) {
+                    const nodeId = addonEl.dataset.node;
+                    openAddonPropertiesPanel(nodeId);
+                    return;
+                }
+
+                const nodeEl = e.target.closest('.node');
+                if (nodeEl) {
+                    openPropertiesPanel(nodeEl.id);
+                }
+            });
+
+            // Context menu
+            canvasContainer.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+
+                // Niet op een node
+                if (!e.target.closest('.node')) {
+                    showContextMenu(e.clientX, e.clientY);
+                }
+            });
+
+            // Context menu item click
+            contextMenu.addEventListener('click', (e) => {
+                const item = e.target.closest('.context-menu-item');
+                if (item) {
+                    const action = item.dataset.action;
+                    const x = parseFloat(contextMenu.dataset.canvasX);
+                    const y = parseFloat(contextMenu.dataset.canvasY);
+
+                    const type = action.replace('add-', '');
+                    if (nodeTypes[type]) {
+                        createNode(type, x, y);
+                    }
+                }
+                hideContextMenu();
+            });
+
+            // Verberg context menu bij klik elders
+            document.addEventListener('click', (e) => {
+                if (!contextMenu.contains(e.target)) {
+                    hideContextMenu();
+                }
+            });
+
+            // Keyboard
+            document.addEventListener('keydown', (e) => {
+                // Delete geselecteerde nodes
+                if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedNodes.size > 0) {
+                    // Niet als we in een input zijn
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+                        e.preventDefault();
+                        // Delete all selected nodes
+                        const nodesToDelete = [...state.selectedNodes];
+                        nodesToDelete.forEach(id => deleteNode(id));
+                        clearSelection();
+                        closePropertiesPanel();
+                    }
+                }
+
+                // Escape - clear selection and close panel
+                if (e.key === 'Escape') {
+                    closePropertiesPanel();
+                    clearSelection();
+                }
+
+                // Ctrl/Cmd + A - select all
+                if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+                        e.preventDefault();
+                        state.nodes.forEach((nodeData, id) => {
+                            const el = document.getElementById(id);
+                            if (el && !el.classList.contains('level-hidden')) {
+                                selectNode(id, true);
+                            }
+                        });
+                    }
+                }
+            });
+
+            // Resize
+            window.addEventListener('resize', () => {
+                drawConnections();
+                updateMinimap();
+            });
+        }
+
+        // ==================== ACTIVITY LOG ====================
+        const logState = {
+            entries: [],
+            filter: 'all',
+            isOpen: false,
+            unreadCount: 0
+        };
+
+        // Sample agents for simulation
+        const simulatedAgents = [
+            { id: 'HR-EMP-00007', name: 'Impertio Agent 001', icon: '🤖' },
+            { id: 'BOT-FINANCE', name: 'Finance Bot', icon: '💰' },
+            { id: 'BOT-QA', name: 'QA Inspector', icon: '🔍' },
+            { id: 'BOT-PM', name: 'Project Manager', icon: '📊' }
+        ];
+
+        // Sample log messages for simulation
+        const simulatedMessages = {
+            action: [
+                { msg: 'Analyzing code in <span class="code">src/components/</span>', highlight: 'CodeReview' },
+                { msg: 'Running automated tests on <span class="highlight">Feature Branch</span>', highlight: 'Testing' },
+                { msg: 'Scanning for security vulnerabilities', highlight: 'Security' },
+                { msg: 'Optimizing database queries', highlight: 'Performance' },
+                { msg: 'Generating documentation from source', highlight: 'Docs' }
+            ],
+            task: [
+                { msg: 'Created task <span class="code">AA-TASK-2026-00042</span>: Fix login validation', highlight: 'Created' },
+                { msg: 'Updated task status to <span class="highlight">In Progress</span>', highlight: 'Updated' },
+                { msg: 'Completed task <span class="code">AA-TASK-2026-00039</span>', highlight: 'Completed' },
+                { msg: 'Assigned task to <span class="highlight">Development Team</span>', highlight: 'Assigned' },
+                { msg: 'Added comment to task <span class="code">AA-TASK-2026-00041</span>', highlight: 'Comment' }
+            ],
+            message: [
+                { msg: 'Received instruction from <span class="highlight">Maarten</span>: "Review PR #42"', highlight: 'Chat' },
+                { msg: 'Sent daily summary to <span class="highlight">Team Channel</span>', highlight: 'Report' },
+                { msg: 'Notified stakeholders about milestone completion', highlight: 'Notify' },
+                { msg: 'Processed email from <span class="highlight">client@example.com</span>', highlight: 'Email' }
+            ],
+            success: [
+                { msg: 'Build completed successfully <span class="code">v2.3.1</span>', highlight: 'Build' },
+                { msg: 'All tests passed (47/47)', highlight: 'Tests' },
+                { msg: 'Deployment to staging complete', highlight: 'Deploy' },
+                { msg: 'Code review approved', highlight: 'Review' }
+            ],
+            error: [
+                { msg: 'Failed to connect to ERPNext API - retrying...', highlight: 'API' },
+                { msg: 'Test failed: <span class="code">user.login.spec.ts</span>', highlight: 'Test' },
+                { msg: 'Memory usage exceeded threshold (85%)', highlight: 'System' }
+            ],
+            system: [
+                { msg: 'Agent started and ready', highlight: 'Init' },
+                { msg: 'Syncing with ERPNext...', highlight: 'Sync' },
+                { msg: 'Heartbeat check: all systems operational', highlight: 'Health' }
+            ]
+        };
+
+        function toggleLogPanel() {
+            const panel = document.getElementById('log-panel');
+            const toggle = document.getElementById('log-toggle');
+            logState.isOpen = !logState.isOpen;
+
+            if (logState.isOpen) {
+                panel.classList.add('open');
+                toggle.classList.remove('has-new');
+                logState.unreadCount = 0;
+                updateLogBadge();
+            } else {
+                panel.classList.remove('open');
+            }
+        }
+
+        function addLogEntry(type, agent, message, tag = null) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const entry = {
+                id: Date.now(),
+                type: type,
+                agent: agent,
+                message: message,
+                tag: tag || type,
+                time: time,
+                timestamp: now
+            };
+
+            logState.entries.unshift(entry);
+
+            // Limit entries to 200
+            if (logState.entries.length > 200) {
+                logState.entries = logState.entries.slice(0, 200);
+            }
+
+            // Update UI
+            renderLogEntry(entry);
+
+            // Update badge if panel is closed
+            if (!logState.isOpen) {
+                logState.unreadCount++;
+                updateLogBadge();
+                document.getElementById('log-toggle').classList.add('has-new');
+            }
+        }
+
+        function renderLogEntry(entry) {
+            const container = document.getElementById('log-content');
+            const entryEl = document.createElement('div');
+            entryEl.className = `log-entry type-${entry.type}`;
+            entryEl.dataset.type = entry.type;
+            entryEl.dataset.id = entry.id;
+
+            // Apply filter
+            if (logState.filter !== 'all' && entry.type !== logState.filter) {
+                entryEl.style.display = 'none';
+            }
+
+            entryEl.innerHTML = `
+                <span class="log-time">${entry.time}</span>
+                <span class="log-agent">
+                    <span class="log-agent-icon">${entry.agent.icon}</span>
+                    <span class="log-agent-name">${entry.agent.name.split(' ')[0]}</span>
+                </span>
+                <span class="log-message">${entry.message}</span>
+                <span class="log-tag ${entry.tag}">${entry.tag}</span>
+            `;
+
+            container.insertBefore(entryEl, container.firstChild);
+        }
+
+        function setLogFilter(filter) {
+            logState.filter = filter;
+
+            // Update filter buttons
+            document.querySelectorAll('.log-filter').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+
+            // Show/hide entries
+            document.querySelectorAll('.log-entry').forEach(entry => {
+                if (filter === 'all' || entry.dataset.type === filter) {
+                    entry.style.display = '';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
+
+        function clearLog() {
+            logState.entries = [];
+            document.getElementById('log-content').innerHTML = '';
+            logState.unreadCount = 0;
+            updateLogBadge();
+        }
+
+        function updateLogBadge() {
+            const badge = document.getElementById('log-badge');
+            badge.textContent = logState.unreadCount > 99 ? '99+' : logState.unreadCount;
+        }
+
+        // Simulate bot activity
+        function simulateBotActivity() {
+            const types = ['action', 'task', 'message', 'success', 'error', 'system'];
+            const weights = [35, 25, 15, 12, 5, 8]; // Percentage chance for each type
+
+            function getRandomType() {
+                const total = weights.reduce((a, b) => a + b, 0);
+                let random = Math.random() * total;
+                for (let i = 0; i < types.length; i++) {
+                    if (random < weights[i]) return types[i];
+                    random -= weights[i];
+                }
+                return types[0];
+            }
+
+            function addRandomEntry() {
+                const type = getRandomType();
+                const messages = simulatedMessages[type];
+                const msgData = messages[Math.floor(Math.random() * messages.length)];
+                const agent = simulatedAgents[Math.floor(Math.random() * simulatedAgents.length)];
+
+                addLogEntry(type, agent, msgData.msg, msgData.highlight);
+            }
+
+            // Add initial entries
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => addRandomEntry(), i * 200);
+            }
+
+            // Add random entries periodically
+            setInterval(() => {
+                if (Math.random() < 0.6) { // 60% chance every interval
+                    addRandomEntry();
+                }
+            }, 3000 + Math.random() * 4000); // Random interval 3-7 seconds
+        }
+
+        // Start
+        init();
+
+        // Start bot activity simulation after a short delay
+        setTimeout(simulateBotActivity, 1000);
+    </script>
+</body>
+</html>

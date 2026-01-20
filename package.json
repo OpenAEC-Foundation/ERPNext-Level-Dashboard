@@ -1,0 +1,22 @@
+{
+  "name": "erpnext-level-dashboard",
+  "version": "0.1.0",
+  "description": "Visual node-based dashboard for ERPNext organizations",
+  "author": "OpenAEC Foundation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenAEC-Foundation/ERPNext-Level-Dashboard"
+  },
+  "scripts": {
+    "dev": "python3 -m http.server 8081",
+    "start": "python3 -m http.server 8081"
+  },
+  "keywords": [
+    "erpnext",
+    "dashboard",
+    "organization",
+    "canvas",
+    "visualization"
+  ]
+}

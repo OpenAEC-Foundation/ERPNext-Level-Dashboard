@@ -54,13 +54,13 @@ The proxy runs on `http://localhost:3333` and forwards requests to ERPNext with 
 2. Generate an API Key and Secret for your user
 3. Enter these credentials in the dashboard settings
 
-### Pre-configured Instances
+### Example Instances
 
-The following instances are pre-configured (credentials can be updated in settings):
+You can configure multiple ERPNext instances in the settings panel. Example configuration:
 
-- **InstanceA**: https://example.erpnext.com
-- **InstanceB**: https://example2.erpnext.com
-- **InstanceC**: https://example3.erpnext.com
+- **Instance A**: https://company-a.example.com
+- **Instance B**: https://company-b.example.com
+- **Instance C**: https://company-c.example.com
 
 ## Project Structure
 

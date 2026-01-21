@@ -2000,11 +2000,11 @@
     <div class="erpnext-badge" id="erpnext-badge">
         <span class="dot"></span>
         <select id="instance-selector" onchange="switchInstance(this.value)" title="Selecteer ERPNext instance">
-            <option value="impertire">InstanceA</option>
-            <option value="3bm">InstanceB</option>
-            <option value="domera" disabled>InstanceC (geen credentials)</option>
+            <option value="instance_a">Instance A</option>
+            <option value="instance_b">Instance B</option>
+            <option value="instance_c" disabled>Instance C (no credentials)</option>
         </select>
-        <span id="erpnext-status">Connected to InstanceA</span>
+        <span id="erpnext-status">Connected to Instance A</span>
         <button class="settings-btn" onclick="openSettingsModal()" title="Settings">⚙️</button>
     </div>
 
@@ -2598,30 +2598,31 @@
         };
 
         // ==================== ERPNEXT INSTANCES ====================
-        // Default instances - can be overridden from localStorage
+        // Default instances - configure your own in the settings panel
+        // API credentials should be entered via the UI, not hardcoded here
         const DEFAULT_INSTANCES = {
-            impertire: {
-                name: 'InstanceA',
-                url: 'https://example.erpnext.com',
-                apiKey: 'REMOVED_API_KEY',
-                apiSecret: 'REMOVED_API_SECRET',
-                company: 'Example Company A',
-                color: '#8b5cf6'
-            },
-            '3bm': {
-                name: 'InstanceB',
-                url: 'https://example2.erpnext.com',
-                apiKey: 'REMOVED_API_KEY',
-                apiSecret: 'REMOVED_API_SECRET',
-                company: 'InstanceB V.O.F.',
-                color: '#059669'
-            },
-            domera: {
-                name: 'InstanceC',
-                url: 'https://example3.erpnext.com',
+            instance_a: {
+                name: 'Instance A',
+                url: 'https://your-erpnext.example.com',
                 apiKey: '',
                 apiSecret: '',
-                company: 'InstanceC',
+                company: 'Your Company',
+                color: '#8b5cf6'
+            },
+            instance_b: {
+                name: 'Instance B',
+                url: 'https://another-erpnext.example.com',
+                apiKey: '',
+                apiSecret: '',
+                company: 'Another Company',
+                color: '#059669'
+            },
+            instance_c: {
+                name: 'Instance C',
+                url: 'https://third-erpnext.example.com',
+                apiKey: '',
+                apiSecret: '',
+                company: 'Third Company',
                 color: '#dc2626'
             }
         };
@@ -4881,7 +4882,7 @@
                 if (headData.employee_id) {
                     html += `
                         <div style="margin-top: 20px;">
-                            <button onclick="window.open('https://example.erpnext.com/app/employee/${headData.employee_id}', '_blank')"
+                            <button onclick="window.open(getCurrentInstance().url + '/app/employee/${headData.employee_id}', '_blank')"
                                     style="background: #1e40af; border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <span>↗</span> Open in ERPNext
                             </button>

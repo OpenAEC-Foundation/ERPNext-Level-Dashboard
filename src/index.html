@@ -806,6 +806,29 @@
             color: #555;
         }
 
+        /* Company Owner addon - amber/gold color */
+        .node-addon.company-owner {
+            border-color: #f59e0b;
+            box-shadow: 0 6px 25px rgba(245, 158, 11, 0.35);
+        }
+        .node-addon.company-owner:hover {
+            border-color: #fbbf24;
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5);
+        }
+        .node-addon.company-owner .addon-avatar {
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+        .node-addon.company-owner .addon-icon {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        .node-addon.company-owner.empty {
+            border-color: #444;
+        }
+        .node-addon.company-owner.empty:hover {
+            border-color: #f59e0b;
+        }
+
         /* ========== NODE CONDITION INDICATOR ========== */
         /* 0-1: Gevaar (Danger) - Red
            2: Verval (Decay) - Orange
@@ -3559,7 +3582,8 @@
                     country: companyDoc?.country,
                     default_currency: companyDoc?.default_currency,
                     parent_company: companyDoc?.parent_company,
-                    tax_id: companyDoc?.tax_id
+                    tax_id: companyDoc?.tax_id,
+                    company_director: companyDoc?.company_director || null
                 },
                 departments: departments.map(d => ({
                     name: d.name,
@@ -3839,42 +3863,44 @@
         // Build organization chart from ERPNext data
         function buildOrganizationFromData(data) {
             const nodeMap = new Map(); // Track node IDs by ERPNext name
-            const deptSpacing = 620;      // Horizontal space between departments
-            const deptStartX = 200;
-            const deptY = 650;            // Y position for departments
-            const subDeptY = 1050;        // Y position for subdepartments
-            const empY = 1500;            // Y position for employees
+            const deptSpacing = 800;      // Horizontal space between departments (increased)
+            const deptStartX = 150;
+            const deptY = 500;            // Y position for departments
+            const policyY = 750;          // Y position for policy nodes
+            const subDeptY = 950;         // Y position for subdepartments
+            const empY = 1300;            // Y position for employees
 
-            // 1. Create Company node
-            const companyId = createNode('company', 1500, 80, {
+            // Find company director/owner
+            const companyDirector = data.company.company_director
+                ? data.employees.find(e => e.name === data.company.company_director)
+                : null;
+
+            // 1. Create Company node with owner
+            const companyId = createNode('company', 1600, 80, {
                 ...data.company,
-                name: data.company.name
+                name: data.company.name,
+                owner: companyDirector ? {
+                    name: companyDirector.employee_name,
+                    designation: companyDirector.designation || 'Bestuurder',
+                    employee_id: companyDirector.name,
+                    avatarUrl: `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(companyDirector.employee_name)}&backgroundColor=1a1a1a`
+                } : null
             });
             nodeMap.set('company', companyId);
 
-            // 2. Find CTO (top of hierarchy)
-            const cto = data.employees.find(e => e.designation === 'Chief Technology Officer');
-            if (cto) {
-                const ctoId = createNode('boss', 1500, 350, {
-                    name: cto.employee_name,
-                    employee_id: cto.name,
-                    designation: cto.designation,
-                    user_id: cto.user_id,
-                    status: cto.status
-                });
-                nodeMap.set(cto.name, ctoId);
-                connectNodes(companyId, ctoId);
-            }
-
-            // 3. Create main departments (level 1)
+            // 2. Create main departments (level 1) - connect directly to company
             const mainDepts = data.departments.filter(d => d.parent_department === 'All Departments');
+            const totalDeptWidth = (mainDepts.length - 1) * deptSpacing;
+            const deptCenterX = 1600 - totalDeptWidth / 2;
+
             mainDepts.forEach((dept, index) => {
-                // Find department head from the new custom field
+                // Find department head from the custom field
                 const deptHead = dept.department_head
                     ? data.employees.find(e => e.name === dept.department_head)
                     : null;
 
-                const deptId = createNode('department', deptStartX + deptSpacing * index, deptY, {
+                const deptX = deptCenterX + deptSpacing * index;
+                const deptId = createNode('department', deptX, deptY, {
                     name: dept.department_name,
                     erpnext_name: dept.name,
                     is_group: dept.is_group,
@@ -3882,66 +3908,76 @@
                     head: deptHead ? {
                         name: deptHead.employee_name,
                         designation: deptHead.designation,
-                        employee_id: deptHead.name
+                        employee_id: deptHead.name,
+                        avatarUrl: `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(deptHead.employee_name)}&backgroundColor=1a1a1a`
                     } : null
                 });
                 nodeMap.set(dept.name, deptId);
 
-                // Connect to CTO
-                if (cto) {
-                    connectNodes(nodeMap.get(cto.name), deptId);
-                }
+                // Connect to Company
+                connectNodes(companyId, deptId);
 
-                // Create policy node for department (linked to wiki)
-                const policyId = createNode('policy', deptStartX + deptSpacing * index - 140, deptY + 220, {
+                // Create policy node for department (linked to Frappe Wiki)
+                const policySlug = dept.department_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                const policyId = createNode('policy', deptX - 100, policyY, {
                     name: `${dept.department_name} Beleid`,
                     type: 'Guideline',
                     applies_to: dept.department_name,
                     status: 'Active',
-                    wiki_url: `https://wiki.example.com/departments/${encodeURIComponent(dept.department_name.toLowerCase().replace(/\s+/g, '-'))}`
+                    wiki_url: `${ERPNEXT_API.directUrl}/wiki/beleid/${policySlug}`,
+                    wiki_route: `wiki/beleid/${policySlug}`
                 });
                 connectNodes(deptId, policyId);
             });
 
-            // 4. Create sub-departments
-            const subDepts = data.departments.filter(d => d.parent_department !== 'All Departments');
-            const subDeptPositions = new Map(); // Track positions per parent
+            // 3. Create sub-departments in a single horizontal row per parent
+            const subDepts = data.departments.filter(d =>
+                d.parent_department !== 'All Departments' &&
+                d.parent_department !== null
+            );
 
+            // Group subdepartments by parent
+            const subDeptsByParent = new Map();
             subDepts.forEach(subDept => {
-                const parentId = nodeMap.get(subDept.parent_department);
+                if (!subDeptsByParent.has(subDept.parent_department)) {
+                    subDeptsByParent.set(subDept.parent_department, []);
+                }
+                subDeptsByParent.get(subDept.parent_department).push(subDept);
+            });
+
+            // Position subdepartments in a row under each parent
+            const subDeptSpacing = 280;
+            subDeptsByParent.forEach((children, parentName) => {
+                const parentId = nodeMap.get(parentName);
                 if (!parentId) return;
 
                 const parentData = state.nodes.get(parentId);
                 if (!parentData) return;
 
-                // Calculate position with more spacing
-                if (!subDeptPositions.has(subDept.parent_department)) {
-                    subDeptPositions.set(subDept.parent_department, { count: 0, offset: -120 });
-                }
-                const pos = subDeptPositions.get(subDept.parent_department);
-                const xOffset = (pos.count % 2 === 0 ? -1 : 1) * 140 * Math.ceil((pos.count + 1) / 2);
-                const yOffset = Math.floor(pos.count / 2) * 180;
-                pos.count++;
+                const totalWidth = (children.length - 1) * subDeptSpacing;
+                const startX = parentData.x - totalWidth / 2;
 
-                // Find sub-department head
-                const subDeptHead = subDept.department_head
-                    ? data.employees.find(e => e.name === subDept.department_head)
-                    : null;
+                children.forEach((subDept, index) => {
+                    const subDeptHead = subDept.department_head
+                        ? data.employees.find(e => e.name === subDept.department_head)
+                        : null;
 
-                const subDeptId = createNode('subdepartment', parentData.x + xOffset, subDeptY + yOffset, {
-                    name: subDept.department_name,
-                    erpnext_name: subDept.name,
-                    parent_department: subDept.parent_department,
-                    is_group: subDept.is_group,
-                    department_head: subDept.department_head,
-                    head: subDeptHead ? {
-                        name: subDeptHead.employee_name,
-                        designation: subDeptHead.designation,
-                        employee_id: subDeptHead.name
-                    } : null
+                    const subDeptX = startX + index * subDeptSpacing;
+                    const subDeptId = createNode('subdepartment', subDeptX, subDeptY, {
+                        name: subDept.department_name,
+                        erpnext_name: subDept.name,
+                        parent_department: subDept.parent_department,
+                        is_group: subDept.is_group,
+                        department_head: subDept.department_head,
+                        head: subDeptHead ? {
+                            name: subDeptHead.employee_name,
+                            designation: subDeptHead.designation,
+                            employee_id: subDeptHead.name
+                        } : null
+                    });
+                    nodeMap.set(subDept.name, subDeptId);
+                    connectNodes(parentId, subDeptId);
                 });
-                nodeMap.set(subDept.name, subDeptId);
-                connectNodes(parentId, subDeptId);
             });
 
             // 5. Create employee nodes
@@ -4107,10 +4143,19 @@
             } else if (type === 'skill') {
                 bodyContent = `<span style="color: ${nodeType.color}">${d.category || 'Skill'}</span>`;
             } else if (type === 'policy') {
+                const wikiLink = d.wiki_url || (d.wiki_route ? `${ERPNEXT_API.directUrl}/${d.wiki_route}` : null);
                 bodyContent = `
                     <span>${d.type || 'Guideline'} • ${d.status || 'Active'}</span>
-                    <div style="margin-top: 6px; font-size: 10px; color: #888; display: flex; align-items: center; gap: 4px;">
-                        <span>📄</span> Dubbelklik om te openen
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                        <div style="font-size: 10px; color: #888; display: flex; align-items: center; gap: 4px;">
+                            <span>📄</span> Dubbelklik voor editor
+                        </div>
+                        ${wikiLink ? `
+                        <a href="${wikiLink}" target="_blank" onclick="event.stopPropagation();"
+                           style="font-size: 10px; color: #3b82f6; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                            <span>🔗</span> Open in Frappe Wiki
+                        </a>
+                        ` : ''}
                     </div>
                 `;
             } else if (type === 'jaardoel') {
@@ -4183,7 +4228,7 @@
                     ? `<img src="${d.avatarUrl}" alt="${d.name}" class="node-avatar" onerror="this.outerHTML='<div class=\\'node-icon\\'>${nodeType.icon}</div>'">`
                     : `<div class="node-icon">${nodeType.icon}</div>`;
 
-                // Build addon HTML for department nodes
+                // Build addon HTML for department and company nodes
                 let addonHTML = '';
                 if (type === 'department') {
                     if (d.head) {
@@ -4203,6 +4248,28 @@
                                 <div class="addon-icon">+</div>
                                 <div class="addon-name">Vacature</div>
                                 <div class="addon-label">Hoofd</div>
+                            </div>
+                        `;
+                    }
+                } else if (type === 'company') {
+                    // Owner/Director addon for Company
+                    if (d.owner) {
+                        const ownerAvatar = d.owner.avatarUrl
+                            ? `<img src="${d.owner.avatarUrl}" alt="${d.owner.name}" class="addon-avatar" onerror="this.outerHTML='<div class=\\'addon-icon\\'>👔</div>'">`
+                            : `<div class="addon-icon">👔</div>`;
+                        addonHTML = `
+                            <div class="node-addon company-owner" data-addon="owner" data-node="${id}" title="${d.owner.name} - ${d.owner.designation || 'Bestuurder'}">
+                                ${ownerAvatar}
+                                <div class="addon-name">${d.owner.name ? d.owner.name.split(' ')[0] : 'Owner'}</div>
+                                <div class="addon-label">Bestuurder</div>
+                            </div>
+                        `;
+                    } else {
+                        addonHTML = `
+                            <div class="node-addon company-owner empty" data-addon="owner" data-node="${id}" title="Klik om bestuurder toe te voegen">
+                                <div class="addon-icon">+</div>
+                                <div class="addon-name">Vacature</div>
+                                <div class="addon-label">Bestuurder</div>
                             </div>
                         `;
                     }

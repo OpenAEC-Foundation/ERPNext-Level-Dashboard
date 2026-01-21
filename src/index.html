@@ -997,6 +997,287 @@
             letter-spacing: 0.5px;
         }
 
+        /* ========== WIKI MODAL ========== */
+        .wiki-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .wiki-modal.open {
+            display: flex;
+        }
+        .wiki-modal-content {
+            width: 90%;
+            max-width: 1000px;
+            height: 85%;
+            max-height: 800px;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            border-radius: 16px;
+            border: 1px solid #333;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .wiki-modal-header {
+            padding: 16px 24px;
+            background: linear-gradient(180deg, #252525 0%, #1a1a1a 100%);
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .wiki-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .wiki-icon {
+            font-size: 24px;
+        }
+        .wiki-modal-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .wiki-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .wiki-btn-edit {
+            background: #3b82f6;
+            color: white;
+        }
+        .wiki-btn-edit:hover {
+            background: #2563eb;
+        }
+        .wiki-btn-save {
+            background: #22c55e;
+            color: white;
+        }
+        .wiki-btn-save:hover {
+            background: #16a34a;
+        }
+        .wiki-btn-cancel {
+            background: #6b7280;
+            color: white;
+        }
+        .wiki-btn-cancel:hover {
+            background: #4b5563;
+        }
+        .wiki-btn-close {
+            background: transparent;
+            color: #888;
+            padding: 8px 12px;
+        }
+        .wiki-btn-close:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+        .wiki-modal-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .wiki-view, .wiki-edit {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .wiki-rendered-content {
+            flex: 1;
+            padding: 32px 40px;
+            overflow-y: auto;
+            color: #e0e0e0;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        /* Markdown rendered styles */
+        .wiki-rendered-content h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #333;
+        }
+        .wiki-rendered-content h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+            margin: 28px 0 16px 0;
+        }
+        .wiki-rendered-content h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ddd;
+            margin: 24px 0 12px 0;
+        }
+        .wiki-rendered-content p {
+            margin: 0 0 16px 0;
+        }
+        .wiki-rendered-content ul, .wiki-rendered-content ol {
+            margin: 0 0 16px 0;
+            padding-left: 24px;
+        }
+        .wiki-rendered-content li {
+            margin: 8px 0;
+        }
+        .wiki-rendered-content code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: #f97316;
+        }
+        .wiki-rendered-content pre {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+        .wiki-rendered-content pre code {
+            background: transparent;
+            padding: 0;
+            color: #e0e0e0;
+        }
+        .wiki-rendered-content blockquote {
+            border-left: 4px solid #3b82f6;
+            margin: 16px 0;
+            padding: 12px 20px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 0 8px 8px 0;
+        }
+        .wiki-rendered-content a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .wiki-rendered-content a:hover {
+            text-decoration: underline;
+        }
+        .wiki-rendered-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        .wiki-rendered-content th, .wiki-rendered-content td {
+            border: 1px solid #333;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        .wiki-rendered-content th {
+            background: #252525;
+            font-weight: 600;
+        }
+        .wiki-rendered-content hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 24px 0;
+        }
+        /* Editor styles */
+        .wiki-editor-toolbar {
+            padding: 10px 16px;
+            background: #252525;
+            border-bottom: 1px solid #333;
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .wiki-editor-toolbar button {
+            padding: 6px 12px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s ease;
+        }
+        .wiki-editor-toolbar button:hover {
+            background: #444;
+            color: #fff;
+        }
+        .wiki-editor-toolbar button.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+        .toolbar-divider {
+            width: 1px;
+            background: #444;
+            margin: 0 8px;
+        }
+        .wiki-editor-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .wiki-editor-textarea {
+            flex: 1;
+            padding: 24px;
+            background: #0f0f0f;
+            border: none;
+            color: #e0e0e0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+        .wiki-editor-textarea::placeholder {
+            color: #555;
+        }
+        .wiki-preview {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #141414;
+            border-left: 1px solid #333;
+        }
+        .wiki-modal-footer {
+            padding: 12px 24px;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .wiki-status {
+            color: #888;
+        }
+        .wiki-status.saved {
+            color: #22c55e;
+        }
+        .wiki-status.error {
+            color: #ef4444;
+        }
+        .wiki-path {
+            color: #555;
+            font-family: monospace;
+        }
+
         /* ========== PROPERTIES PANEL ========== */
         #properties-panel {
             position: fixed;
@@ -1967,6 +2248,65 @@
         </div>
         <div class="context-menu-item" data-action="add-policy">
             <span class="context-menu-icon">📋</span> Policy
+        </div>
+    </div>
+
+    <!-- Wiki Modal -->
+    <div id="wiki-modal" class="wiki-modal">
+        <div class="wiki-modal-content">
+            <div class="wiki-modal-header">
+                <div class="wiki-modal-title">
+                    <span class="wiki-icon">📋</span>
+                    <span id="wiki-title">Beleid</span>
+                </div>
+                <div class="wiki-modal-actions">
+                    <button id="wiki-edit-btn" class="wiki-btn wiki-btn-edit" title="Bewerken">
+                        ✏️ Bewerken
+                    </button>
+                    <button id="wiki-save-btn" class="wiki-btn wiki-btn-save" style="display: none;" title="Opslaan">
+                        💾 Opslaan
+                    </button>
+                    <button id="wiki-cancel-btn" class="wiki-btn wiki-btn-cancel" style="display: none;" title="Annuleren">
+                        ✕ Annuleren
+                    </button>
+                    <button id="wiki-close-btn" class="wiki-btn wiki-btn-close" title="Sluiten">
+                        ✕
+                    </button>
+                </div>
+            </div>
+            <div class="wiki-modal-body">
+                <!-- View Mode -->
+                <div id="wiki-view-mode" class="wiki-view">
+                    <div id="wiki-content" class="wiki-rendered-content">
+                        <!-- Rendered markdown content goes here -->
+                    </div>
+                </div>
+                <!-- Edit Mode -->
+                <div id="wiki-edit-mode" class="wiki-edit" style="display: none;">
+                    <div class="wiki-editor-toolbar">
+                        <button type="button" data-action="bold" title="Vet (Ctrl+B)"><b>B</b></button>
+                        <button type="button" data-action="italic" title="Cursief (Ctrl+I)"><i>I</i></button>
+                        <button type="button" data-action="heading" title="Kop">H</button>
+                        <span class="toolbar-divider"></span>
+                        <button type="button" data-action="ul" title="Lijst">• List</button>
+                        <button type="button" data-action="ol" title="Genummerde lijst">1. List</button>
+                        <button type="button" data-action="link" title="Link">🔗</button>
+                        <button type="button" data-action="code" title="Code">&lt;/&gt;</button>
+                        <span class="toolbar-divider"></span>
+                        <button type="button" data-action="preview" title="Preview" id="wiki-preview-toggle">👁 Preview</button>
+                    </div>
+                    <div class="wiki-editor-container">
+                        <textarea id="wiki-editor" class="wiki-editor-textarea" placeholder="Schrijf hier je markdown..."></textarea>
+                        <div id="wiki-preview" class="wiki-preview" style="display: none;">
+                            <!-- Live preview goes here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="wiki-modal-footer">
+                <span id="wiki-status" class="wiki-status"></span>
+                <span id="wiki-path" class="wiki-path"></span>
+            </div>
         </div>
     </div>
 
@@ -3674,6 +4014,9 @@
             updateTransform();
             updateMinimap();
 
+            // Initialize wiki modal
+            initWikiModal();
+
             // Load data from ERPNext
             loadFromERPNext();
 
@@ -3764,8 +4107,12 @@
             } else if (type === 'skill') {
                 bodyContent = `<span style="color: ${nodeType.color}">${d.category || 'Skill'}</span>`;
             } else if (type === 'policy') {
-                const wikiHint = d.wiki_url ? `<div style="margin-top: 4px; font-size: 10px; color: #888;">🔗 Dubbelklik voor wiki</div>` : '';
-                bodyContent = `<span>${d.type || 'Guideline'} • ${d.status || 'Active'}</span>${wikiHint}`;
+                bodyContent = `
+                    <span>${d.type || 'Guideline'} • ${d.status || 'Active'}</span>
+                    <div style="margin-top: 6px; font-size: 10px; color: #888; display: flex; align-items: center; gap: 4px;">
+                        <span>📄</span> Dubbelklik om te openen
+                    </div>
+                `;
             } else if (type === 'jaardoel') {
                 const progressColor = (d.progress || 0) >= 100 ? '#22c55e' : (d.progress || 0) >= 50 ? '#eab308' : '#ef4444';
                 bodyContent = `
@@ -4834,6 +5181,409 @@
             propertiesPanel.classList.remove('open');
         }
 
+        // ==================== WIKI MODAL ====================
+
+        // Simple markdown parser
+        function parseMarkdown(md) {
+            if (!md) return '';
+
+            let html = md
+                // Escape HTML
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+
+                // Code blocks (before other processing)
+                .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+
+                // Headers
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+
+                // Bold and italic
+                .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
+                .replace(/__(.+?)__/g, '<strong>$1</strong>')
+                .replace(/_(.+?)_/g, '<em>$1</em>')
+
+                // Links and images
+                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%;">')
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+
+                // Blockquotes
+                .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+
+                // Horizontal rule
+                .replace(/^---$/gm, '<hr>')
+                .replace(/^\*\*\*$/gm, '<hr>')
+
+                // Unordered lists
+                .replace(/^\* (.+)$/gm, '<li>$1</li>')
+                .replace(/^- (.+)$/gm, '<li>$1</li>')
+
+                // Ordered lists
+                .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+
+                // Paragraphs (lines that don't start with HTML tags)
+                .replace(/^(?!<[hpuolibcqa]|<\/|<hr|<pre|<img)(.+)$/gm, '<p>$1</p>')
+
+                // Clean up empty paragraphs
+                .replace(/<p><\/p>/g, '')
+
+                // Wrap consecutive li elements in ul
+                .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+
+                // Fix nested blockquotes
+                .replace(/<\/blockquote>\n<blockquote>/g, '\n');
+
+            return html;
+        }
+
+        // Wiki modal state
+        const wikiModal = {
+            currentNodeId: null,
+            originalContent: '',
+            isEditing: false
+        };
+
+        // Open wiki modal for a policy node
+        function openWikiModal(nodeId) {
+            const nodeData = state.nodes.get(nodeId);
+            if (!nodeData) return;
+
+            wikiModal.currentNodeId = nodeId;
+            wikiModal.isEditing = false;
+
+            const modal = document.getElementById('wiki-modal');
+            const titleEl = document.getElementById('wiki-title');
+            const contentEl = document.getElementById('wiki-content');
+            const pathEl = document.getElementById('wiki-path');
+            const statusEl = document.getElementById('wiki-status');
+            const viewMode = document.getElementById('wiki-view-mode');
+            const editMode = document.getElementById('wiki-edit-mode');
+            const editBtn = document.getElementById('wiki-edit-btn');
+            const saveBtn = document.getElementById('wiki-save-btn');
+            const cancelBtn = document.getElementById('wiki-cancel-btn');
+
+            // Set title
+            titleEl.textContent = nodeData.data.name || 'Beleid';
+            pathEl.textContent = nodeData.data.wiki_url || '';
+
+            // Show view mode, hide edit mode
+            viewMode.style.display = 'flex';
+            editMode.style.display = 'none';
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+
+            // Load content
+            statusEl.textContent = 'Laden...';
+            statusEl.className = 'wiki-status';
+
+            // Get or create wiki content
+            const wikiContent = nodeData.data.wiki_content || getDefaultWikiContent(nodeData.data);
+            wikiModal.originalContent = wikiContent;
+
+            // Render markdown
+            contentEl.innerHTML = parseMarkdown(wikiContent);
+            statusEl.textContent = '';
+
+            // Show modal
+            modal.classList.add('open');
+        }
+
+        // Get default wiki content for a policy
+        function getDefaultWikiContent(data) {
+            return `# ${data.name || 'Beleid'}
+
+## Beschrijving
+
+Dit is het beleidsdocument voor **${data.applies_to || 'de afdeling'}**.
+
+## Richtlijnen
+
+- Richtlijn 1: Beschrijf hier de eerste richtlijn
+- Richtlijn 2: Beschrijf hier de tweede richtlijn
+- Richtlijn 3: Beschrijf hier de derde richtlijn
+
+## Procedures
+
+### Stap 1
+Beschrijf de eerste stap van de procedure.
+
+### Stap 2
+Beschrijf de tweede stap van de procedure.
+
+## Verantwoordelijkheden
+
+| Rol | Verantwoordelijkheid |
+|-----|---------------------|
+| Manager | Goedkeuring van wijzigingen |
+| Medewerker | Naleving van richtlijnen |
+
+## Contact
+
+Voor vragen over dit beleid, neem contact op met de afdeling.
+
+---
+
+*Laatst bijgewerkt: ${new Date().toLocaleDateString('nl-NL')}*
+`;
+        }
+
+        // Close wiki modal
+        function closeWikiModal() {
+            const modal = document.getElementById('wiki-modal');
+            modal.classList.remove('open');
+            wikiModal.currentNodeId = null;
+            wikiModal.isEditing = false;
+        }
+
+        // Enter edit mode
+        function enterWikiEditMode() {
+            const viewMode = document.getElementById('wiki-view-mode');
+            const editMode = document.getElementById('wiki-edit-mode');
+            const editBtn = document.getElementById('wiki-edit-btn');
+            const saveBtn = document.getElementById('wiki-save-btn');
+            const cancelBtn = document.getElementById('wiki-cancel-btn');
+            const editor = document.getElementById('wiki-editor');
+            const preview = document.getElementById('wiki-preview');
+            const previewToggle = document.getElementById('wiki-preview-toggle');
+
+            // Get current content
+            const nodeData = state.nodes.get(wikiModal.currentNodeId);
+            const content = nodeData?.data?.wiki_content || wikiModal.originalContent;
+
+            // Set editor content
+            editor.value = content;
+
+            // Show edit mode
+            viewMode.style.display = 'none';
+            editMode.style.display = 'flex';
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
+
+            // Reset preview
+            preview.style.display = 'none';
+            editor.style.flex = '1';
+            previewToggle.classList.remove('active');
+
+            wikiModal.isEditing = true;
+            editor.focus();
+        }
+
+        // Exit edit mode without saving
+        function exitWikiEditMode() {
+            const viewMode = document.getElementById('wiki-view-mode');
+            const editMode = document.getElementById('wiki-edit-mode');
+            const editBtn = document.getElementById('wiki-edit-btn');
+            const saveBtn = document.getElementById('wiki-save-btn');
+            const cancelBtn = document.getElementById('wiki-cancel-btn');
+
+            viewMode.style.display = 'flex';
+            editMode.style.display = 'none';
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+
+            wikiModal.isEditing = false;
+        }
+
+        // Save wiki content
+        function saveWikiContent() {
+            const editor = document.getElementById('wiki-editor');
+            const contentEl = document.getElementById('wiki-content');
+            const statusEl = document.getElementById('wiki-status');
+            const content = editor.value;
+
+            // Save to node data
+            const nodeData = state.nodes.get(wikiModal.currentNodeId);
+            if (nodeData) {
+                nodeData.data.wiki_content = content;
+                wikiModal.originalContent = content;
+
+                // Mark as dirty
+                dirtyNodes.add(wikiModal.currentNodeId);
+                scheduleAutoSave();
+            }
+
+            // Update rendered view
+            contentEl.innerHTML = parseMarkdown(content);
+
+            // Show status
+            statusEl.textContent = '✓ Opgeslagen';
+            statusEl.className = 'wiki-status saved';
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'wiki-status';
+            }, 2000);
+
+            // Exit edit mode
+            exitWikiEditMode();
+        }
+
+        // Toggle preview in edit mode
+        function toggleWikiPreview() {
+            const editor = document.getElementById('wiki-editor');
+            const preview = document.getElementById('wiki-preview');
+            const previewToggle = document.getElementById('wiki-preview-toggle');
+
+            if (preview.style.display === 'none') {
+                // Show preview
+                preview.style.display = 'block';
+                editor.style.flex = '1';
+                preview.innerHTML = parseMarkdown(editor.value);
+                previewToggle.classList.add('active');
+            } else {
+                // Hide preview
+                preview.style.display = 'none';
+                editor.style.flex = '1';
+                previewToggle.classList.remove('active');
+            }
+        }
+
+        // Update preview on editor change
+        function updateWikiPreview() {
+            const editor = document.getElementById('wiki-editor');
+            const preview = document.getElementById('wiki-preview');
+
+            if (preview.style.display !== 'none') {
+                preview.innerHTML = parseMarkdown(editor.value);
+            }
+        }
+
+        // Editor toolbar action
+        function wikiEditorAction(action) {
+            const editor = document.getElementById('wiki-editor');
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            const selected = text.substring(start, end);
+
+            let replacement = '';
+            let cursorOffset = 0;
+
+            switch (action) {
+                case 'bold':
+                    replacement = `**${selected || 'tekst'}**`;
+                    cursorOffset = selected ? 0 : -2;
+                    break;
+                case 'italic':
+                    replacement = `*${selected || 'tekst'}*`;
+                    cursorOffset = selected ? 0 : -1;
+                    break;
+                case 'heading':
+                    replacement = `\n## ${selected || 'Kop'}\n`;
+                    cursorOffset = selected ? 0 : -1;
+                    break;
+                case 'ul':
+                    replacement = `\n- ${selected || 'Item'}\n`;
+                    break;
+                case 'ol':
+                    replacement = `\n1. ${selected || 'Item'}\n`;
+                    break;
+                case 'link':
+                    replacement = `[${selected || 'tekst'}](url)`;
+                    cursorOffset = selected ? -1 : -5;
+                    break;
+                case 'code':
+                    if (selected.includes('\n')) {
+                        replacement = `\n\`\`\`\n${selected}\n\`\`\`\n`;
+                    } else {
+                        replacement = `\`${selected || 'code'}\``;
+                    }
+                    break;
+                case 'preview':
+                    toggleWikiPreview();
+                    return;
+            }
+
+            editor.value = text.substring(0, start) + replacement + text.substring(end);
+            editor.focus();
+
+            const newPos = start + replacement.length + cursorOffset;
+            editor.setSelectionRange(newPos, newPos);
+
+            updateWikiPreview();
+        }
+
+        // Initialize wiki modal event listeners
+        function initWikiModal() {
+            const modal = document.getElementById('wiki-modal');
+            const closeBtn = document.getElementById('wiki-close-btn');
+            const editBtn = document.getElementById('wiki-edit-btn');
+            const saveBtn = document.getElementById('wiki-save-btn');
+            const cancelBtn = document.getElementById('wiki-cancel-btn');
+            const toolbar = document.querySelector('.wiki-editor-toolbar');
+            const editor = document.getElementById('wiki-editor');
+
+            // Close button
+            closeBtn.addEventListener('click', closeWikiModal);
+
+            // Click outside to close
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeWikiModal();
+                }
+            });
+
+            // Escape to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.classList.contains('open')) {
+                    if (wikiModal.isEditing) {
+                        exitWikiEditMode();
+                    } else {
+                        closeWikiModal();
+                    }
+                }
+            });
+
+            // Edit button
+            editBtn.addEventListener('click', enterWikiEditMode);
+
+            // Save button
+            saveBtn.addEventListener('click', saveWikiContent);
+
+            // Cancel button
+            cancelBtn.addEventListener('click', exitWikiEditMode);
+
+            // Toolbar buttons
+            toolbar.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (btn && btn.dataset.action) {
+                    wikiEditorAction(btn.dataset.action);
+                }
+            });
+
+            // Editor input for live preview
+            editor.addEventListener('input', updateWikiPreview);
+
+            // Keyboard shortcuts in editor
+            editor.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key) {
+                        case 'b':
+                            e.preventDefault();
+                            wikiEditorAction('bold');
+                            break;
+                        case 'i':
+                            e.preventDefault();
+                            wikiEditorAction('italic');
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            saveWikiContent();
+                            break;
+                    }
+                }
+            });
+        }
+
         // Open properties panel for department head (addon)
         function openAddonPropertiesPanel(nodeId) {
             const nodeData = state.nodes.get(nodeId);
@@ -5301,7 +6051,7 @@
                 canvasContainer.style.cursor = 'default';
             });
 
-            // Double click - open properties or wiki URL for policy nodes
+            // Double click - open properties or wiki modal for policy nodes
             canvasContainer.addEventListener('dblclick', (e) => {
                 // Check if clicked on addon
                 const addonEl = e.target.closest('.node-addon');
@@ -5315,9 +6065,9 @@
                 if (nodeEl) {
                     const nodeData = state.nodes.get(nodeEl.id);
 
-                    // For policy nodes with wiki_url, open the wiki page
-                    if (nodeData && nodeData.type === 'policy' && nodeData.data.wiki_url) {
-                        window.open(nodeData.data.wiki_url, '_blank');
+                    // For policy nodes, open the wiki modal
+                    if (nodeData && nodeData.type === 'policy') {
+                        openWikiModal(nodeEl.id);
                         return;
                     }
 

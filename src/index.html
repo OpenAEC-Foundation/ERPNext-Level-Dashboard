@@ -5247,16 +5247,79 @@
         const wikiModal = {
             currentNodeId: null,
             originalContent: '',
-            isEditing: false
+            isEditing: false,
+            wikiPageName: null,  // Frappe Wiki Page name
+            wikiRoute: null      // Wiki page route
         };
 
+        // Generate wiki route from policy data
+        function getWikiRoute(data) {
+            const slug = (data.applies_to || data.name || 'beleid')
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+            return `wiki/beleid/${slug}`;
+        }
+
+        // Fetch wiki page from Frappe Wiki
+        async function fetchWikiPage(route) {
+            try {
+                // Search for wiki page by route
+                const result = await erpnextFetch(`/api/resource/Wiki Page?filters=${encodeURIComponent(JSON.stringify([['route', '=', route]])}&fields=["name","title","content","route","published"]`);
+                if (result.data && result.data.length > 0) {
+                    return result.data[0];
+                }
+                return null;
+            } catch (error) {
+                console.error('Failed to fetch wiki page:', error);
+                return null;
+            }
+        }
+
+        // Create new wiki page in Frappe Wiki
+        async function createWikiPage(title, route, content) {
+            try {
+                const result = await erpnextFetch('/api/resource/Wiki Page', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: title,
+                        route: route,
+                        content: content,
+                        published: 1,
+                        allow_guest: 0
+                    })
+                });
+                return result.data;
+            } catch (error) {
+                console.error('Failed to create wiki page:', error);
+                throw error;
+            }
+        }
+
+        // Update wiki page in Frappe Wiki
+        async function updateWikiPage(pageName, content) {
+            try {
+                const result = await erpnextFetch(`/api/resource/Wiki Page/${encodeURIComponent(pageName)}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        content: content
+                    })
+                });
+                return result.data;
+            } catch (error) {
+                console.error('Failed to update wiki page:', error);
+                throw error;
+            }
+        }
+
         // Open wiki modal for a policy node
-        function openWikiModal(nodeId) {
+        async function openWikiModal(nodeId) {
             const nodeData = state.nodes.get(nodeId);
             if (!nodeData) return;
 
             wikiModal.currentNodeId = nodeId;
             wikiModal.isEditing = false;
+            wikiModal.wikiPageName = null;
 
             const modal = document.getElementById('wiki-modal');
             const titleEl = document.getElementById('wiki-title');
@@ -5271,7 +5334,11 @@
 
             // Set title
             titleEl.textContent = nodeData.data.name || 'Beleid';
-            pathEl.textContent = nodeData.data.wiki_url || '';
+
+            // Generate wiki route
+            const wikiRoute = getWikiRoute(nodeData.data);
+            wikiModal.wikiRoute = wikiRoute;
+            pathEl.textContent = wikiRoute;
 
             // Show view mode, hide edit mode
             viewMode.style.display = 'flex';
@@ -5280,20 +5347,47 @@
             saveBtn.style.display = 'none';
             cancelBtn.style.display = 'none';
 
-            // Load content
-            statusEl.textContent = 'Laden...';
+            // Show modal with loading state
+            modal.classList.add('open');
+            statusEl.textContent = 'Laden van wiki...';
             statusEl.className = 'wiki-status';
+            contentEl.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 32px; margin-bottom: 10px;">⏳</div>Wiki pagina laden...</div>';
 
-            // Get or create wiki content
-            const wikiContent = nodeData.data.wiki_content || getDefaultWikiContent(nodeData.data);
+            // Try to fetch from Frappe Wiki
+            let wikiContent = null;
+            try {
+                const wikiPage = await fetchWikiPage(wikiRoute);
+                if (wikiPage) {
+                    wikiModal.wikiPageName = wikiPage.name;
+                    wikiContent = wikiPage.content;
+                    statusEl.textContent = '✓ Geladen van wiki';
+                    statusEl.className = 'wiki-status saved';
+                } else {
+                    // No existing page, use default content
+                    wikiContent = getDefaultWikiContent(nodeData.data);
+                    statusEl.textContent = 'Nieuwe pagina (nog niet opgeslagen)';
+                    statusEl.className = 'wiki-status';
+                }
+            } catch (error) {
+                console.error('Wiki fetch error:', error);
+                // Fallback to local content or default
+                wikiContent = nodeData.data.wiki_content || getDefaultWikiContent(nodeData.data);
+                statusEl.textContent = '⚠️ Kon wiki niet laden, lokale versie getoond';
+                statusEl.className = 'wiki-status error';
+            }
+
             wikiModal.originalContent = wikiContent;
 
             // Render markdown
             contentEl.innerHTML = parseMarkdown(wikiContent);
-            statusEl.textContent = '';
 
-            // Show modal
-            modal.classList.add('open');
+            // Clear status after delay
+            setTimeout(() => {
+                if (statusEl.textContent.startsWith('✓')) {
+                    statusEl.textContent = '';
+                    statusEl.className = 'wiki-status';
+                }
+            }, 2000);
         }
 
         // Get default wiki content for a policy
@@ -5354,9 +5448,8 @@ Voor vragen over dit beleid, neem contact op met de afdeling.
             const preview = document.getElementById('wiki-preview');
             const previewToggle = document.getElementById('wiki-preview-toggle');
 
-            // Get current content
-            const nodeData = state.nodes.get(wikiModal.currentNodeId);
-            const content = nodeData?.data?.wiki_content || wikiModal.originalContent;
+            // Get current content (prefer wiki content over local)
+            const content = wikiModal.originalContent;
 
             // Set editor content
             editor.value = content;
@@ -5394,37 +5487,75 @@ Voor vragen over dit beleid, neem contact op met de afdeling.
             wikiModal.isEditing = false;
         }
 
-        // Save wiki content
-        function saveWikiContent() {
+        // Save wiki content to Frappe Wiki
+        async function saveWikiContent() {
             const editor = document.getElementById('wiki-editor');
             const contentEl = document.getElementById('wiki-content');
             const statusEl = document.getElementById('wiki-status');
+            const saveBtn = document.getElementById('wiki-save-btn');
             const content = editor.value;
 
-            // Save to node data
             const nodeData = state.nodes.get(wikiModal.currentNodeId);
-            if (nodeData) {
-                nodeData.data.wiki_content = content;
+            if (!nodeData) return;
+
+            // Show saving state
+            statusEl.textContent = 'Opslaan naar wiki...';
+            statusEl.className = 'wiki-status';
+            saveBtn.disabled = true;
+            saveBtn.textContent = '⏳ Opslaan...';
+
+            try {
+                if (wikiModal.wikiPageName) {
+                    // Update existing wiki page
+                    await updateWikiPage(wikiModal.wikiPageName, content);
+                    statusEl.textContent = '✓ Opgeslagen in Frappe Wiki';
+                } else {
+                    // Create new wiki page
+                    const title = nodeData.data.name || 'Beleid';
+                    const newPage = await createWikiPage(title, wikiModal.wikiRoute, content);
+                    wikiModal.wikiPageName = newPage.name;
+                    statusEl.textContent = '✓ Nieuwe pagina aangemaakt in wiki';
+                }
+
+                statusEl.className = 'wiki-status saved';
                 wikiModal.originalContent = content;
+
+                // Also save to node data as backup
+                nodeData.data.wiki_content = content;
+                nodeData.data.wiki_page_name = wikiModal.wikiPageName;
+                nodeData.data.wiki_route = wikiModal.wikiRoute;
 
                 // Mark as dirty
                 dirtyNodes.add(wikiModal.currentNodeId);
                 scheduleAutoSave();
+
+                // Update rendered view
+                contentEl.innerHTML = parseMarkdown(content);
+
+                // Exit edit mode
+                exitWikiEditMode();
+
+                // Clear status after delay
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'wiki-status';
+                }, 3000);
+
+            } catch (error) {
+                console.error('Failed to save to wiki:', error);
+                statusEl.textContent = '❌ Fout bij opslaan: ' + (error.message || 'Onbekende fout');
+                statusEl.className = 'wiki-status error';
+
+                // Still save locally as fallback
+                nodeData.data.wiki_content = content;
+                wikiModal.originalContent = content;
+                dirtyNodes.add(wikiModal.currentNodeId);
+                scheduleAutoSave();
+
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Opslaan';
             }
-
-            // Update rendered view
-            contentEl.innerHTML = parseMarkdown(content);
-
-            // Show status
-            statusEl.textContent = '✓ Opgeslagen';
-            statusEl.className = 'wiki-status saved';
-            setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'wiki-status';
-            }, 2000);
-
-            // Exit edit mode
-            exitWikiEditMode();
         }
 
         // Toggle preview in edit mode
